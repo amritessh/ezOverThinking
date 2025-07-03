@@ -1,0 +1,117 @@
+services:
+  # Redis for state management and caching
+  redis:
+    image: redis:7-alpine
+    container_name: ezoverthinking_redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL for persistent data
+  postgres:
+    image: postgres:15-alpine
+    container_name: ezoverthinking_postgres
+    environment:
+      POSTGRES_DB: ezoverthinking
+      POSTGRES_USER: ezuser
+      POSTGRES_PASSWORD: ezpassword
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ezuser -d ezoverthinking']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Main application (development)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: ezoverthinking_app
+    environment:
+      - DATABASE_URL=postgresql://ezuser:ezpassword@postgres:5432/ezoverthinking
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=development
+    ports:
+      - '8000:8000'
+    volumes:
+      - .:/app
+      - /app/.venv
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Streamlit frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ezoverthinking_frontend
+    environment:
+      - API_URL=http://app:8000
+    ports:
+      - '8501:8501'
+    volumes:
+      - ./frontend:/app/frontend
+    depends_on:
+      - app
+    restart: unless-stopped
+    command: streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ezoverthinking_prometheus
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    restart: unless-stopped
+
+  # Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ezoverthinking_grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: ezoverthinking_network
