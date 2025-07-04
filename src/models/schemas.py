@@ -458,6 +458,51 @@ class SystemConfig(BaseModel):
         json_encoders = {datetime: lambda v: v.isoformat()}
 
 
+# ==========================================
+# WebSocket Models
+# ==========================================
+
+class WebSocketMessageType(Enum):
+    """Types of WebSocket messages"""
+    
+    CHAT = "chat"
+    SYSTEM = "system"
+    TYPING = "typing"
+    ANXIETY_UPDATE = "anxiety_update"
+    ERROR = "error"
+    STATUS = "status"
+
+
+class WebSocketMessage(BaseModel):
+    """WebSocket message model for real-time communication"""
+    
+    message_type: WebSocketMessageType = Field(..., description="Type of message")
+    conversation_id: str = Field(..., description="Conversation identifier")
+    user_id: str = Field(..., description="User identifier")
+    content: str = Field(..., description="Message content")
+    timestamp: datetime = Field(default_factory=datetime.now, description="Message timestamp")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.isoformat(),
+            WebSocketMessageType: lambda v: v.value,
+        }
+
+
+class WebSocketStatus(BaseModel):
+    """WebSocket connection status"""
+    
+    status: str = Field(..., description="Connection status (connected, disconnected, error)")
+    conversation_id: str = Field(..., description="Conversation identifier")
+    user_id: str = Field(..., description="User identifier")
+    timestamp: datetime = Field(default_factory=datetime.now, description="Status timestamp")
+    message: Optional[str] = Field(default=None, description="Status message")
+    
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}
+
+
 # Export all models
 __all__ = [
     # Enums
@@ -480,4 +525,7 @@ __all__ = [
     # Configuration
     "AgentConfig",
     "SystemConfig",
+    # WebSocket Models
+    "WebSocketMessage",
+    "WebSocketStatus",
 ]

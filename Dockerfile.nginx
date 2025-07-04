@@ -1,0 +1,22 @@
+ROM nginx:alpine as nginx
+
+# Copy nginx configuration
+COPY deployment/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY deployment/nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# Copy SSL certificates (if using HTTPS)
+COPY deployment/ssl/ /etc/ssl/certs/
+
+# Create log directory
+RUN mkdir -p /var/log/nginx && \
+    chown -R nginx:nginx /var/log/nginx
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+# Expose ports
+EXPOSE 80 443
+
+# Run nginx
+CMD ["nginx", "-g", "daemon off;"]

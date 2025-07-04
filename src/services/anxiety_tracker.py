@@ -134,7 +134,11 @@ class AnxietyTracker:
             
             # Update analytics
             self.analytics["total_sessions"] += 1
+            if initial_anxiety.value not in self.analytics["anxiety_distribution"]:
+                self.analytics["anxiety_distribution"][initial_anxiety.value] = 0
             self.analytics["anxiety_distribution"][initial_anxiety.value] += 1
+            if AnxietyEvent.INITIAL.value not in self.analytics["event_counts"]:
+                self.analytics["event_counts"][AnxietyEvent.INITIAL.value] = 0
             self.analytics["event_counts"][AnxietyEvent.INITIAL.value] += 1
             
             self.logger.info(f"Started anxiety tracking for conversation: {conversation_id}")
@@ -179,7 +183,11 @@ class AnxietyTracker:
             self.active_sessions[conversation_id].append(data_point)
             
             # Update analytics
+            if new_level.value not in self.analytics["anxiety_distribution"]:
+                self.analytics["anxiety_distribution"][new_level.value] = 0
             self.analytics["anxiety_distribution"][new_level.value] += 1
+            if event_type.value not in self.analytics["event_counts"]:
+                self.analytics["event_counts"][event_type.value] = 0
             self.analytics["event_counts"][event_type.value] += 1
             
             # Check for alerts

@@ -39,7 +39,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: ezoverthinking_app
     environment:
       - DATABASE_URL=postgresql://ezuser:ezpassword@postgres:5432/ezoverthinking
@@ -62,7 +62,7 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: frontend/Dockerfile
     container_name: ezoverthinking_frontend
     environment:
       - API_URL=http://app:8000
@@ -73,7 +73,7 @@ services:
     depends_on:
       - app
     restart: unless-stopped
-    command: streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    command: streamlit run frontend/main.py --server.address 0.0.0.0 --server.port 8501
 
   # Prometheus for monitoring
   prometheus:

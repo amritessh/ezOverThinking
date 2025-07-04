@@ -1,0 +1,15 @@
+---
+# .github/workflows/backup.yml - Automated backup workflow (DISABLED - AWS removed)
+name: Database Backup (Disabled)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Backup Disabled
+        run: |
+          echo "AWS backup implementation has been removed"
+          echo "Please implement your preferred backup solution"

@@ -1,0 +1,45 @@
+# .github/workflows/dependency-update.yml - Automated dependency updates
+name: Dependency Update
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Weekly dependency update
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install pip-tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-tools
+
+      - name: Update dependencies
+        run: |
+          pip-compile --upgrade requirements.in
+          pip-compile --upgrade requirements-frontend.in
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: update dependencies'
+          title: 'Automated dependency update'
+          body: |
+            This PR updates all dependencies to their latest versions.
+
+            Please review the changes and ensure all tests pass before merging.
+          branch: dependencies/update-${{ github.run_number }}
+          labels: |
+            dependencies
+            automated
