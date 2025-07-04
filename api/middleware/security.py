@@ -10,7 +10,9 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     """Basic security middleware"""
 
     async def dispatch(self, request: Request, call_next):
-        # Add security headers
+        # Bypass authentication for local testing
+        # if not authenticated:
+        #     return JSONResponse(status_code=403, content={"detail": "Not authenticated"})
         response = await call_next(request)
 
         # Security headers

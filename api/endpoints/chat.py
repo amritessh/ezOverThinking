@@ -16,7 +16,6 @@ from src.models.schemas import (
     ConversationStatus,
 )
 from ..websocket_handler import get_websocket_handler, initialize_websocket_handler
-from ..auth.jwt_handler import get_current_user
 from ..dependencies import get_conversation_orchestrator, get_anxiety_tracker
 
 logger = logging.getLogger(__name__)
@@ -31,37 +30,44 @@ async def send_message(
     background_tasks: BackgroundTasks,
     orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
     anxiety_tracker: AnxietyTracker = Depends(get_anxiety_tracker),
-    current_user: dict = Depends(get_current_user),
 ):
     """Send a message and get agent responses"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"  # Bypass authentication for local testing
 
         # Create user concern
         user_concern = UserConcern(
             user_id=user_id, original_worry=request.message, timestamp=datetime.now()
         )
 
-        # Process with orchestrator
-        result = await orchestrator.process_conversation_turn(
-            user_id=user_id, user_concern=user_concern
-        )
+        # Check for existing conversation
+        conversation_state = await orchestrator.get_conversation_state(user_id)
+        if conversation_state is None:
+            # Start a new conversation
+            conversation_id = await orchestrator.start_conversation(user_id, user_concern)
+        else:
+            conversation_id = conversation_state.conversation_id
+
+        # Orchestrate response
+        agent_response = await orchestrator.orchestrate_response(conversation_id, request.message)
 
         # Get current anxiety level
-        current_anxiety = await anxiety_tracker.get_current_anxiety_level(user_id)
+        current_anxiety = await anxiety_tracker.get_real_time_anxiety(conversation_id)
 
         # Background task to update analytics
         background_tasks.add_task(
-            update_analytics_background, user_id, result, orchestrator
+            update_analytics_background, user_id, agent_response, orchestrator
         )
 
         return ChatResponse(
-            conversation_id=result.get("conversation_id", "temp_conv"),
-            message=result.get("response", "I'm processing your concern..."),
-            agent_name=result.get("agent_name", "System"),
+            conversation_id=conversation_id,
+            message=agent_response.response,
+            agent_name=agent_response.agent_name,
             anxiety_level=current_anxiety or AnxietyLevel.MINIMAL,
+            next_suggested_agents=agent_response.suggested_next_agents,
             conversation_status=ConversationStatus.ACTIVE,
-            timestamp=datetime.now(),
+            metadata=agent_response.metadata,
+            timestamp=agent_response.timestamp,
         )
 
     except Exception as e:
@@ -73,34 +79,35 @@ async def send_message(
 async def continue_conversation(
     orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
     anxiety_tracker: AnxietyTracker = Depends(get_anxiety_tracker),
-    current_user: dict = Depends(get_current_user),
 ):
     """Continue the current conversation"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         # Get current conversation state
         conversation_state = await orchestrator.get_conversation_state(user_id)
 
-        if not conversation_state or not conversation_state.last_concern:
+        if not conversation_state:
             raise HTTPException(
                 status_code=400, detail="No active conversation to continue"
             )
 
-        # Continue with last concern
-        result = await orchestrator.process_conversation_turn(
-            user_id=user_id, user_concern=conversation_state.last_concern
+        # Continue with a generic continuation message
+        agent_response = await orchestrator.orchestrate_response(
+            conversation_state.conversation_id, "Please continue the conversation"
         )
 
-        current_anxiety = await anxiety_tracker.get_current_anxiety_level(user_id)
+        current_anxiety = await anxiety_tracker.get_real_time_anxiety(conversation_state.conversation_id)
 
         return ChatResponse(
-            conversation_id=result.get("conversation_id", "temp_conv"),
-            message=result.get("response", "Continuing the conversation..."),
-            agent_name=result.get("agent_name", "System"),
+            conversation_id=conversation_state.conversation_id,
+            message=agent_response.response,
+            agent_name=agent_response.agent_name,
             anxiety_level=current_anxiety or AnxietyLevel.MINIMAL,
+            next_suggested_agents=agent_response.suggested_next_agents,
             conversation_status=ConversationStatus.ACTIVE,
-            timestamp=datetime.now(),
+            metadata=agent_response.metadata,
+            timestamp=agent_response.timestamp,
         )
 
     except HTTPException:
@@ -113,11 +120,10 @@ async def continue_conversation(
 @router.post("/reset")
 async def reset_conversation(
     orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
-    current_user: dict = Depends(get_current_user),
 ):
     """Reset the current conversation"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
         await orchestrator.reset_conversation(user_id)
         return {"message": "Conversation reset successfully"}
 
@@ -129,11 +135,10 @@ async def reset_conversation(
 @router.get("/state", response_model=ConversationState)
 async def get_conversation_state(
     orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get current conversation state"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
         state = await orchestrator.get_conversation_state(user_id)
 
         if not state:
@@ -151,16 +156,25 @@ async def get_conversation_state(
 @router.get("/anxiety-level", response_model=dict)
 async def get_anxiety_level(
     anxiety_tracker: AnxietyTracker = Depends(get_anxiety_tracker),
-    current_user: dict = Depends(get_current_user),
+    orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
 ):
     """Get current anxiety level"""
     try:
-        user_id = current_user["user_id"]
-        anxiety_level = await anxiety_tracker.get_current_anxiety_level(user_id)
-        anxiety_history = await anxiety_tracker.get_anxiety_history(user_id)
+        user_id = "demo_user"
+        
+        # Get current conversation state
+        conversation_state = await orchestrator.get_conversation_state(user_id)
+        if not conversation_state:
+            return {
+                "current_level": 1,
+                "history": []
+            }
+        
+        anxiety_level = await anxiety_tracker.get_real_time_anxiety(conversation_state.conversation_id)
+        anxiety_history = await anxiety_tracker.get_anxiety_history(conversation_state.conversation_id)
 
         return {
-            "current_level": anxiety_level.value,
+            "current_level": anxiety_level.value if anxiety_level else 1,
             "history": [
                 {
                     "level": entry.anxiety_level.value,
@@ -179,12 +193,11 @@ async def get_anxiety_level(
 @router.get("/analytics", response_model=ConversationAnalytics)
 async def get_conversation_analytics(
     orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get conversation analytics"""
     try:
-        user_id = current_user["user_id"]
-        analytics = await orchestrator.get_conversation_analytics(user_id)
+        user_id = "demo_user"
+        analytics = await orchestrator.get_user_conversation_analytics(user_id)
         return analytics
 
     except Exception as e:
@@ -238,11 +251,10 @@ async def update_analytics_background(
 async def stream_conversation(
     request: ChatRequest,
     orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
-    current_user: dict = Depends(get_current_user),
 ):
     """Stream conversation responses in real-time"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         # Create user concern
         user_concern = UserConcern(
@@ -284,31 +296,37 @@ async def batch_process_concerns(
     requests: List[ChatRequest],
     orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
     anxiety_tracker: AnxietyTracker = Depends(get_anxiety_tracker),
-    current_user: dict = Depends(get_current_user),
 ):
     """Process multiple concerns in batch"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
         responses = []
 
         for request in requests:
             user_concern = UserConcern(
-                user_id=user_id, content=request.content, timestamp=datetime.now()
+                user_id=user_id, original_worry=request.message, timestamp=datetime.now()
             )
 
-            result = await orchestrator.process_conversation_turn(
-                user_id=user_id, user_concern=user_concern
-            )
+            # Check for existing conversation
+            conversation_state = await orchestrator.get_conversation_state(user_id)
+            if conversation_state is None:
+                conversation_id = await orchestrator.start_conversation(user_id, user_concern)
+            else:
+                conversation_id = conversation_state.conversation_id
 
-            current_anxiety = await anxiety_tracker.get_current_anxiety_level(user_id)
+            agent_response = await orchestrator.orchestrate_response(conversation_id, request.message)
+            current_anxiety = await anxiety_tracker.get_real_time_anxiety(conversation_id)
 
             responses.append(
                 ChatResponse(
-                    responses=result.responses,
-                    anxiety_level=current_anxiety,
-                    should_continue=result.should_continue,
-                    conversation_phase=result.conversation_phase,
-                    timestamp=datetime.now(),
+                    conversation_id=conversation_id,
+                    message=agent_response.response,
+                    agent_name=agent_response.agent_name,
+                    anxiety_level=current_anxiety or AnxietyLevel.MINIMAL,
+                    next_suggested_agents=agent_response.suggested_next_agents,
+                    conversation_status=ConversationStatus.ACTIVE,
+                    metadata=agent_response.metadata,
+                    timestamp=agent_response.timestamp,
                 )
             )
 
@@ -323,7 +341,6 @@ async def batch_process_concerns(
 @router.get("/admin/active-conversations")
 async def get_active_conversations(
     orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get active conversations (admin only)"""
     # Note: Add admin role check in production
@@ -340,7 +357,6 @@ async def get_active_conversations(
 async def broadcast_message(
     message: str,
     orchestrator: ConversationOrchestrator = Depends(get_conversation_orchestrator),
-    current_user: dict = Depends(get_current_user),
 ):
     """Broadcast message to all active conversations (admin only)"""
     # Note: Add admin role check in production

@@ -4,11 +4,17 @@ Simple ezOverThinking Streamlit App
 This version works without complex imports and can be deployed immediately.
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath('.'))
+
 import streamlit as st
 import requests
 import json
 import time
 from datetime import datetime
+from utils.api_client import APIClient
+import gradio as gr
 
 # Page configuration
 st.set_page_config(
@@ -84,6 +90,9 @@ if 'anxiety_level' not in st.session_state:
 if 'conversation_id' not in st.session_state:
     st.session_state["conversation_id"] = None
 
+# Initialize API client
+api_client = APIClient()
+
 def get_anxiety_color(level):
     """Get anxiety level color"""
     colors = {
@@ -94,40 +103,6 @@ def get_anxiety_color(level):
         'extreme': 'anxiety-extreme'
     }
     return colors.get(level, 'anxiety-calm')
-
-def send_message(message):
-    """Send message to backend API"""
-    try:
-        # For now, simulate a response since backend might not be fully ready
-        if "worried" in message.lower() or "anxious" in message.lower():
-            response = {
-                "response": "Oh no! I can see you're starting to worry. Let me help you overthink this even more! What if... *gasp* what if this is just the beginning of a much bigger problem? 🤔",
-                "anxiety_escalation": 2,
-                "agent_name": "Dr. Catastrophe"
-            }
-            st.session_state["anxiety_level"] = 'moderate'
-        elif "presentation" in message.lower() or "speech" in message.lower():
-            response = {
-                "response": "A PRESENTATION?! Oh my, this is serious! What if you forget everything? What if people laugh? What if this ruins your entire career? The possibilities for disaster are endless! 😱",
-                "anxiety_escalation": 3,
-                "agent_name": "Professor Panic"
-            }
-            st.session_state["anxiety_level"] = 'high'
-        else:
-            response = {
-                "response": "Interesting... but have you considered all the ways this could go wrong? Let me introduce you to some catastrophic scenarios you might not have thought of yet! 🎭",
-                "anxiety_escalation": 1,
-                "agent_name": "Agent Overthink"
-            }
-            st.session_state["anxiety_level"] = 'mild'
-        
-        return response
-    except Exception as e:
-        return {
-            "response": f"Sorry, I'm having trouble connecting to my overthinking services. Error: {str(e)}",
-            "anxiety_escalation": 0,
-            "agent_name": "System"
-        }
 
 def main():
     # Header
@@ -187,8 +162,7 @@ def main():
         col1, col2 = st.columns([4, 1])
         
         with col1:
-            user_input = st.text_input("Type your worry here...", key="user_input", 
-                                      placeholder="I'm worried about...")
+            user_input = st.text_input("Type your worry here...", key="user_input", placeholder="I'm worried about...", on_change=clear_user_input)
         
         with col2:
             if st.button("🚀 Send", use_container_width=True):
@@ -202,19 +176,31 @@ def main():
                     
                     # Get response
                     with st.spinner("🤔 The agents are overthinking..."):
-                        response = send_message(user_input)
-                    
+                        try:
+                            response = api_client.send_message(user_input)
+                            # Parse the response correctly
+                            if "message" in response:
+                                agent_content = response["message"]
+                                agent_name = response.get("agent_name", "Agent")
+                                escalation = response.get("anxiety_level", 0)
+                            else:
+                                agent_content = "(No response)"
+                                agent_name = "Agent"
+                                escalation = 0
+                        except Exception as e:
+                            agent_content = f"Sorry, could not connect to backend. Error: {str(e)}"
+                            agent_name = "System"
+                            escalation = 0
+
                     # Add agent response
                     st.session_state["messages"].append({
                         "role": "assistant",
-                        "content": response["response"],
-                        "agent": response["agent_name"],
-                        "anxiety_escalation": response["anxiety_escalation"],
+                        "content": agent_content,
+                        "agent": agent_name,
+                        "anxiety_escalation": escalation,
                         "timestamp": datetime.now()
                     })
                     
-                    # Clear input
-                    st.session_state["user_input"] = ""
                     st.rerun()
     
     # Status section
@@ -242,5 +228,38 @@ def main():
     </div>
     """, unsafe_allow_html=True)
 
+def chat(user_input, history):
+    # Call your backend API
+    try:
+        response = requests.post(
+            "http://localhost:8000/chat/send",
+            json={"message": user_input, "user_id": "demo_user"}
+        )
+        data = response.json()
+        
+        # Parse the response correctly
+        if "message" in data:
+            agent_reply = data["message"]
+        else:
+            agent_reply = "(No response)"
+            
+    except Exception as e:
+        agent_reply = f"Error: {e}"
+
+    # Use OpenAI-style message dicts
+    history = history + [
+        {"role": "user", "content": user_input},
+        {"role": "assistant", "content": agent_reply}
+    ]
+    return history
+
+iface = gr.ChatInterface(
+    fn=chat,
+    title="ezOverThinking Chat",
+    description="Chat with your AI-powered overthinking agents!",
+    theme="soft",
+    chatbot=gr.Chatbot(type="messages")  # Use the new message format
+)
+
 if __name__ == "__main__":
-    main() 
+    iface.launch() 

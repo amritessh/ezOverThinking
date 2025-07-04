@@ -167,7 +167,7 @@ class WebSocketHandler:
             # Create user concern
             user_concern = UserConcern(
                 user_id=user_id,
-                content=content,
+                original_worry=content,
                 timestamp=datetime.now()
             )
             
@@ -193,31 +193,44 @@ class WebSocketHandler:
         """Process a full conversation turn with multiple agents"""
         try:
             # Start conversation processing
-            result = await self.orchestrator.process_conversation_turn(
-                user_id=user_id,
-                user_concern=user_concern,
-                callback=lambda agent_name: self.connection_manager.send_typing_indicator(connection_id, agent_name)
-            )
+            # Check for existing conversation
+            conversation_state = await self.orchestrator.get_conversation_state(user_id)
+            if conversation_state is None:
+                # Start a new conversation
+                conversation_id = await self.orchestrator.start_conversation(user_id, user_concern)
+            else:
+                conversation_id = conversation_state.conversation_id
             
-            # Send each agent response
-            for agent_response in result.responses:
-                await self.connection_manager.send_message(connection_id, WebSocketMessage(
-                    type=WebSocketMessageType.AGENT_RESPONSE,
-                    content=agent_response.content,
-                    timestamp=datetime.now(),
-                    metadata={
-                        "agent": agent_response.agent_name,
-                        "anxiety_level": agent_response.anxiety_level.value,
-                        "escalation_level": agent_response.escalation_level
-                    }
-                ))
-                
-                # Add delay for realistic conversation flow
-                await asyncio.sleep(1.5)
+            # Orchestrate response
+            agent_response = await self.orchestrator.orchestrate_response(conversation_id, user_concern.original_worry)
+            
+            # Create a result object similar to what was expected
+            result = type('Result', (), {
+                'responses': [agent_response],
+                'should_continue': True
+            })()
+            
+            # Send agent response
+            await self.connection_manager.send_message(connection_id, WebSocketMessage(
+                type=WebSocketMessageType.AGENT_RESPONSE,
+                content=agent_response.response,
+                timestamp=datetime.now(),
+                metadata={
+                    "agent": agent_response.agent_name,
+                    "anxiety_level": 1,  # Default anxiety level
+                    "escalation_level": 0  # Default escalation level
+                }
+            ))
+            
+            # Add delay for realistic conversation flow
+            await asyncio.sleep(1.5)
             
             # Send anxiety update
-            current_anxiety = await self.anxiety_tracker.get_current_anxiety_level(user_id)
-            await self.connection_manager.send_anxiety_update(connection_id, current_anxiety)
+            # Get conversation state to find conversation_id
+            conversation_state = await self.orchestrator.get_conversation_state(user_id)
+            if conversation_state:
+                current_anxiety = await self.anxiety_tracker.get_real_time_anxiety(conversation_state.conversation_id)
+                await self.connection_manager.send_anxiety_update(connection_id, current_anxiety)
             
             # Check if conversation should continue
             if result.should_continue:
@@ -276,7 +289,7 @@ class WebSocketHandler:
     async def _handle_get_analytics(self, connection_id: str, user_id: str):
         """Handle analytics request"""
         try:
-            analytics = await self.orchestrator.get_conversation_analytics(user_id)
+            analytics = await self.orchestrator.get_user_conversation_analytics(user_id)
             await self.connection_manager.send_message(connection_id, WebSocketMessage(
                 type=WebSocketMessageType.ANALYTICS,
                 content="Here's your overthinking analytics:",

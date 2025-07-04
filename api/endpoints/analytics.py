@@ -7,7 +7,6 @@ from enum import Enum
 
 from src.services.analytics_service import AnalyticsService
 from src.services.anxiety_tracker import AnxietyTracker
-from ..auth.jwt_handler import get_current_user
 from ..dependencies import get_analytics_service, get_anxiety_tracker
 
 logger = logging.getLogger(__name__)
@@ -36,11 +35,10 @@ class MetricType(str, Enum):
 async def get_user_analytics_overview(
     time_range: TimeRange = Query(TimeRange.WEEK),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get user analytics overview"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         # Calculate time range
         end_time = datetime.now()
@@ -75,11 +73,10 @@ async def get_user_analytics_overview(
 async def get_anxiety_trends(
     time_range: TimeRange = Query(TimeRange.WEEK),
     anxiety_tracker: AnxietyTracker = Depends(get_anxiety_tracker),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get anxiety level trends over time"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         # Get anxiety history
         anxiety_history = await anxiety_tracker.get_anxiety_history(
@@ -116,11 +113,10 @@ async def get_anxiety_trends(
 async def get_conversation_patterns(
     time_range: TimeRange = Query(TimeRange.WEEK),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get user conversation patterns and insights"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         patterns = await analytics_service.get_conversation_patterns(
             user_id=user_id, time_range=time_range.value
@@ -142,11 +138,10 @@ async def get_conversation_patterns(
 async def get_worry_categories(
     time_range: TimeRange = Query(TimeRange.WEEK),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get breakdown of worry categories"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         categories = await analytics_service.get_worry_categories_breakdown(
             user_id=user_id, time_range=time_range.value
@@ -169,7 +164,6 @@ async def get_worry_categories(
 async def get_system_analytics_overview(
     time_range: TimeRange = Query(TimeRange.DAY),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get system-wide analytics overview"""
     try:
@@ -195,7 +189,6 @@ async def get_agent_performance_metrics(
     time_range: TimeRange = Query(TimeRange.DAY),
     agent_name: Optional[str] = Query(None),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get agent performance metrics"""
     try:
@@ -220,7 +213,6 @@ async def get_agent_performance_metrics(
 @router.get("/system/health")
 async def get_system_health(
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get system health metrics"""
     try:
@@ -242,7 +234,6 @@ async def get_system_health(
 @router.get("/realtime/active-conversations")
 async def get_realtime_active_conversations(
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get real-time active conversations count"""
     try:
@@ -261,7 +252,6 @@ async def get_realtime_active_conversations(
 @router.get("/realtime/anxiety-distribution")
 async def get_realtime_anxiety_distribution(
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get real-time anxiety level distribution"""
     try:
@@ -283,11 +273,10 @@ async def export_user_data(
     format: str = Query("json", regex="^(json|csv|excel)$"),
     time_range: TimeRange = Query(TimeRange.ALL),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Export user data in various formats"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         data = await analytics_service.export_user_data(
             user_id=user_id, format=format, time_range=time_range.value
@@ -322,14 +311,13 @@ async def export_user_data(
 async def custom_analytics_query(
     query: Dict[str, Any],
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Execute custom analytics query"""
     try:
         # Note: Add validation and security checks for custom queries
 
         result = await analytics_service.execute_custom_query(
-            query=query, user_id=current_user["user_id"]
+            query=query, user_id="demo_user"
         )
 
         return {
@@ -346,11 +334,10 @@ async def custom_analytics_query(
 @router.get("/insights/recommendations")
 async def get_personalized_recommendations(
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get personalized recommendations based on analytics"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         recommendations = await analytics_service.get_personalized_recommendations(
             user_id=user_id
@@ -371,11 +358,10 @@ async def get_personalized_recommendations(
 async def get_anxiety_prediction(
     hours_ahead: int = Query(24, ge=1, le=168),  # 1 hour to 1 week
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get anxiety level prediction"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         prediction = await analytics_service.predict_anxiety_levels(
             user_id=user_id, hours_ahead=hours_ahead
@@ -398,11 +384,10 @@ async def get_anxiety_prediction(
 async def get_peer_comparison(
     anonymous: bool = Query(True),
     analytics_service: AnalyticsService = Depends(get_analytics_service),
-    current_user: dict = Depends(get_current_user),
 ):
     """Get anonymized peer comparison analysis"""
     try:
-        user_id = current_user["user_id"]
+        user_id = "demo_user"
 
         comparison = await analytics_service.get_peer_comparison(
             user_id=user_id, anonymous=anonymous

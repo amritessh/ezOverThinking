@@ -1,5 +1,6 @@
 # api/dependencies.py
 from typing import Dict, Any
+from fastapi import HTTPException
 from src.services.state_manager import StateManager
 from src.services.conversation_orchestrator import ConversationOrchestrator
 from src.services.anxiety_tracker import AnxietyTracker
@@ -17,16 +18,28 @@ def set_services(service_dict: Dict[str, Any]):
 
 # Dependency injection functions
 async def get_state_manager() -> StateManager:
-    return services["state_manager"]
+    service = services.get("state_manager")
+    if service is None:
+        raise HTTPException(status_code=503, detail="StateManager not available")
+    return service
 
 
 async def get_conversation_orchestrator() -> ConversationOrchestrator:
-    return services["conversation_orchestrator"]
+    service = services.get("conversation_orchestrator")
+    if service is None:
+        raise HTTPException(status_code=503, detail="ConversationOrchestrator not available")
+    return service
 
 
 async def get_anxiety_tracker() -> AnxietyTracker:
-    return services["anxiety_tracker"]
+    service = services.get("anxiety_tracker")
+    if service is None:
+        raise HTTPException(status_code=503, detail="AnxietyTracker not available")
+    return service
 
 
 async def get_analytics_service() -> AnalyticsService:
-    return services["analytics_service"]
+    service = services.get("analytics_service")
+    if service is None:
+        raise HTTPException(status_code=503, detail="AnalyticsService not available")
+    return service

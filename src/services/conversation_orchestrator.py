@@ -946,5 +946,99 @@ class ConversationOrchestrator:
             return {"error": str(e)}
 
 
+    async def get_conversation_state(self, user_id: str) -> Optional[ConversationState]:
+        """Get conversation state for a user"""
+        try:
+            # Find active conversation for user
+            for conversation_id, context in self.active_conversations.items():
+                if context.user_id == user_id:
+                    # Get state from state manager
+                    state = await self.state_manager.get_conversation_state(conversation_id)
+                    return state
+            return None
+        except Exception as e:
+            self.logger.error(f"Error getting conversation state for user {user_id}: {e}")
+            return None
+
+    async def reset_conversation(self, user_id: str) -> bool:
+        """Reset conversation for a user"""
+        try:
+            # Find and end active conversation
+            for conversation_id, context in self.active_conversations.items():
+                if context.user_id == user_id:
+                    await self.end_conversation(conversation_id, "user_reset")
+                    return True
+            return True  # No active conversation to reset
+        except Exception as e:
+            self.logger.error(f"Error resetting conversation for user {user_id}: {e}")
+            return False
+
+    async def get_user_conversation_analytics(self, user_id: str) -> Dict[str, Any]:
+        """Get analytics for a specific user's conversations"""
+        try:
+            # Find active conversation for user
+            for conversation_id, context in self.active_conversations.items():
+                if context.user_id == user_id:
+                    analytics = await self.get_conversation_analytics(conversation_id)
+                    return analytics
+            
+            # Return empty analytics if no active conversation
+            return {
+                "conversation_id": None,
+                "total_messages": 0,
+                "conversation_duration": 0,
+                "anxiety_progression": [],
+                "agents_used": [],
+                "escalation_events": 0,
+                "user_satisfaction": None,
+                "humor_effectiveness": None
+            }
+        except Exception as e:
+            self.logger.error(f"Error getting user analytics for {user_id}: {e}")
+            return {"error": str(e)}
+
+    async def get_active_conversations(self) -> List[Dict[str, Any]]:
+        """Get list of active conversations"""
+        try:
+            active_conversations = []
+            for conversation_id, context in self.active_conversations.items():
+                state = await self.state_manager.get_conversation_state(conversation_id)
+                if state:
+                    active_conversations.append({
+                        "conversation_id": conversation_id,
+                        "user_id": context.user_id,
+                        "status": state.status.value,
+                        "message_count": state.message_count,
+                        "current_anxiety_level": state.current_anxiety_level.value,
+                        "created_at": state.created_at.isoformat(),
+                        "updated_at": state.updated_at.isoformat()
+                    })
+            return active_conversations
+        except Exception as e:
+            self.logger.error(f"Error getting active conversations: {e}")
+            return []
+
+    async def broadcast_system_message(self, message: str) -> bool:
+        """Broadcast a system message to all active conversations"""
+        try:
+            for conversation_id, context in self.active_conversations.items():
+                # Create system message
+                system_message = {
+                    "type": "system",
+                    "content": message,
+                    "timestamp": datetime.now().isoformat(),
+                    "conversation_id": conversation_id
+                }
+                
+                # Store in state manager
+                await self.state_manager.store_system_message(conversation_id, system_message)
+            
+            self.logger.info(f"Broadcasted system message to {len(self.active_conversations)} conversations")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error broadcasting system message: {e}")
+            return False
+
+
 # Export
 __all__ = ["ConversationOrchestrator", "OrchestrationMode", "ConversationContext"]

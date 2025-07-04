@@ -130,7 +130,7 @@ class APIClient:
     def send_message(self, content: str, user_id: str = None) -> Dict[str, Any]:
         """Send message to chat API"""
         payload = {
-            "content": content,
+            "message": content,
             "user_id": user_id or st.session_state.get("user_id", "demo_user"),
         }
 
@@ -154,7 +154,7 @@ class APIClient:
 
     def batch_process_concerns(self, concerns: List[str]) -> List[Dict[str, Any]]:
         """Process multiple concerns in batch"""
-        payload = [{"content": concern} for concern in concerns]
+        payload = [{"message": concern} for concern in concerns]
         return self._make_request("POST", "/chat/batch", json=payload)
 
     # Analytics API methods
