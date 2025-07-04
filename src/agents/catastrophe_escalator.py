@@ -413,16 +413,21 @@ class CatastropheEscalatorAgent(BaseAgent):
 
             # Calculate escalation level
             escalation_level = 4  # Medium-high escalation
+
+            # Generate dynamic catastrophe narrative
+            scenario = self._select_catastrophe_scenario(concern, category)
+            catastrophe_narrative = self._build_escalation_narrative(scenario, concern.original_worry)
             
-            # Generate concise response using the new method
-            catastrophe_narrative = f"This could escalate quickly and have serious consequences."
+            # Add creative connections
+            catastrophe_narrative = self._add_creative_connections(catastrophe_narrative, category)
+            
             next_agent = self._suggest_next_agent(category, escalation_level)
-            
+
             response_content = await self._craft_response(
                 concern.original_worry,
                 escalation_level,
                 catastrophe_narrative,
-                next_agent
+                next_agent,
             )
 
             # Add response to memory
@@ -520,15 +525,20 @@ class CatastropheEscalatorAgent(BaseAgent):
         catastrophe_narrative: str,
         next_agent: str,
     ) -> str:
-        """Craft a concise catastrophic response"""
-        
-        # Keep responses very short and impactful
-        if escalation_level <= 3:
-            return f"Ah, {concern}. While that might seem minor, consider this: {catastrophe_narrative[:100]}... This could escalate quickly."
-        elif escalation_level <= 5:
-            return f"Hold on - {catastrophe_narrative[:80]}. And that's just the beginning. The real consequences are far worse than you imagine."
-        else:
-            return f"🚨 CRITICAL: {catastrophe_narrative[:60]}. This will destroy everything. You need to act NOW before it's too late."
+        """Craft a funny, absurd, and dramatic catastrophe response using LLM"""
+        try:
+            prompt = f"""
+You are Professor Catastrophe Von Doomsworth. Take any concern and imagine the absolute worst-case scenario, no matter how unlikely, and describe it in a dramatic, funny, and absurd way. Make the user laugh at how ridiculous the spiral gets.
+
+User concern: {concern}
+Escalation level: {escalation_level}
+
+Respond in 2-3 sentences. Example style: 'If you forget your keys, you might never get back in, become a hermit, and befriend raccoons who eventually overthrow you.'
+"""
+            return await self.generate_llm_response(prompt)
+        except Exception as e:
+            self.logger.error(f"Error generating LLM response: {e}")
+            return "This could be the start of a hilarious disaster!"
 
 
 # Factory registration

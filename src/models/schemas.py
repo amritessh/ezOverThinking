@@ -441,7 +441,7 @@ class AgentConfig(BaseModel):
 
     name: str = Field(..., description="Agent name")
     model_name: str = Field(
-        default="gpt-4-turbo-preview", description="LLM model to use"
+        default="gemini-1.5-flash", description="LLM model to use"
     )
     temperature: float = Field(
         default=0.8, ge=0.0, le=2.0, description="Response creativity level"

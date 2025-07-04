@@ -1,5 +1,6 @@
 # api/endpoints/chat.py
 from fastapi import APIRouter, WebSocket, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from typing import List
 import logging
 from datetime import datetime
@@ -247,8 +248,13 @@ async def update_analytics_background(
 ):
     """Background task to update analytics"""
     try:
-        await orchestrator.update_conversation_analytics(user_id, result)
-        logger.debug(f"✅ Analytics updated for user: {user_id}")
+        # Get conversation state to find conversation_id
+        conversation_state = await orchestrator.get_conversation_state(user_id)
+        if conversation_state:
+            await orchestrator.update_conversation_analytics(conversation_state.conversation_id, result)
+            logger.debug(f"✅ Analytics updated for user: {user_id}")
+        else:
+            logger.warning(f"No conversation state found for user: {user_id}")
     except Exception as e:
         logger.error(f"❌ Error updating analytics: {e}")
 

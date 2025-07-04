@@ -92,16 +92,20 @@ async def lifespan(app: FastAPI):
                     anxiety_tracker=services["anxiety_tracker"],
                 )
                 await services["conversation_orchestrator"].initialize()
-                
+
                 # Register agents with the orchestrator
                 from src.agents.intake_specialist import IntakeSpecialistAgent
                 from src.agents.catastrophe_escalator import CatastropheEscalatorAgent
                 from src.agents.probability_twister import ProbabilityTwisterAgent
-                from src.agents.social_anxiety_amplifier import SocialAnxietyAmplifierAgent
-                from src.agents.timeline_panic_generator import TimelinePanicGeneratorAgent
+                from src.agents.social_anxiety_amplifier import (
+                    SocialAnxietyAmplifierAgent,
+                )
+                from src.agents.timeline_panic_generator import (
+                    TimelinePanicGeneratorAgent,
+                )
                 from src.agents.false_comfort_provider import FalseComfortProviderAgent
                 from src.agents.coordinator import AgentCoordinator
-                
+
                 # Register all agents
                 intake_agent = IntakeSpecialistAgent()
                 catastrophe_agent = CatastropheEscalatorAgent()
@@ -110,7 +114,7 @@ async def lifespan(app: FastAPI):
                 timeline_agent = TimelinePanicGeneratorAgent()
                 comfort_agent = FalseComfortProviderAgent()
                 coordinator = AgentCoordinator()
-                
+
                 services["conversation_orchestrator"].register_agent(intake_agent)
                 services["conversation_orchestrator"].register_agent(catastrophe_agent)
                 services["conversation_orchestrator"].register_agent(probability_agent)
@@ -118,7 +122,7 @@ async def lifespan(app: FastAPI):
                 services["conversation_orchestrator"].register_agent(timeline_agent)
                 services["conversation_orchestrator"].register_agent(comfort_agent)
                 services["conversation_orchestrator"].register_coordinator(coordinator)
-                
+
                 logger.info("✅ ConversationOrchestrator initialized with all agents")
             else:
                 logger.warning(
@@ -274,6 +278,7 @@ async def test_orchestrator():
     except Exception as e:
         return {"error": str(e), "traceback": str(e.__traceback__)}
 
+
 @app.post("/test-orchestrate")
 async def test_orchestrate():
     """Test orchestrate_response method"""
@@ -281,17 +286,19 @@ async def test_orchestrate():
         orchestrator = services.get("conversation_orchestrator")
         if orchestrator is None:
             return {"error": "ConversationOrchestrator not available"}
-        
+
         # Test orchestrate_response
         user_id = "demo_user"
         state = await orchestrator.get_conversation_state(user_id)
-        
+
         if state:
-            response = await orchestrator.orchestrate_response(state.conversation_id, "test message")
+            response = await orchestrator.orchestrate_response(
+                state.conversation_id, "test message"
+            )
             return {
                 "success": True,
                 "response": response.response,
-                "agent_name": response.agent_name
+                "agent_name": response.agent_name,
             }
         else:
             return {"error": "No conversation state found"}
@@ -332,7 +339,13 @@ async def http_exception_handler(request, exc):
     logger.error(f"HTTP Exception: {exc.status_code} - {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
-        content={"error": {"code": exc.status_code, "message": exc.detail, "type": "http_error"}}
+        content={
+            "error": {
+                "code": exc.status_code,
+                "message": exc.detail,
+                "type": "http_error",
+            }
+        },
     )
 
 
@@ -341,7 +354,13 @@ async def general_exception_handler(request, exc):
     logger.error(f"Unexpected error: {str(exc)}")
     return JSONResponse(
         status_code=500,
-        content={"error": {"code": 500, "message": "Internal server error", "type": "server_error"}}
+        content={
+            "error": {
+                "code": 500,
+                "message": "Internal server error",
+                "type": "server_error",
+            }
+        },
     )
 
 

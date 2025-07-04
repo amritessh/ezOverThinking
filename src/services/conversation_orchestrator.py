@@ -1125,13 +1125,14 @@ class ConversationOrchestrator:
             self.logger.error(f"Error broadcasting system message: {e}")
             return False
 
-    async def update_conversation_analytics(self, conversation_id: str, analytics_data: Dict[str, Any]) -> bool:
+    async def update_conversation_analytics(
+        self, conversation_id: str, analytics_data: Dict[str, Any]
+    ) -> bool:
         """Update conversation analytics"""
         try:
-            if self.analytics_service:
-                await self.analytics_service.update_conversation_metrics(conversation_id, analytics_data)
-                return True
-            return False
+            # Store analytics data in state manager instead
+            await self.state_manager.store_analytics_data(conversation_id, analytics_data)
+            return True
         except Exception as e:
             self.logger.error(f"Error updating conversation analytics: {e}")
             return False

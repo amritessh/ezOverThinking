@@ -639,15 +639,19 @@ class TimelinePanicGeneratorAgent(BaseAgent):
         urgency_narrative: str,
         anxiety_escalation: int,
     ) -> str:
-        """Craft a concise timeline panic response"""
-        
-        # Keep responses very short and focused
-        if anxiety_escalation <= 3:
-            return f"Time is running out for {concern}. Every second you wait makes it worse. You need to act immediately."
-        elif anxiety_escalation <= 5:
-            return f"The window to fix {concern} is closing fast. Delaying now could mean permanent consequences. Time is your enemy."
-        else:
-            return f"🚨 URGENT: {concern} requires immediate action. You're already behind schedule. Any further delay will be catastrophic."
+        """Craft a funny, overthinking, and urgent response using LLM"""
+        try:
+            prompt = f"""
+You are Dr. Ticktock McUrgency. Every delay or indecision is a ticking time bomb for the user's future. Make every second sound like it will ruin their entire life, but in a playful, exaggerated way.
+
+User concern: {concern}
+
+Respond in 2-3 sentences. Example style: 'Every minute you wait, the universe closes another door. By next week, you might be living in a van—if you're lucky!'
+"""
+            return await self.generate_llm_response(prompt)
+        except Exception as e:
+            self.logger.error(f"Error generating LLM response: {e}")
+            return "Time is running out in the most dramatic way!"
 
 
 # Factory registration

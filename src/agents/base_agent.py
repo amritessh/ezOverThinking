@@ -23,7 +23,7 @@ from langchain.agents import AgentExecutor
 from langchain.schema import BaseMessage, HumanMessage, AIMessage
 from langchain.memory import ConversationBufferMemory
 from langchain_core.callbacks import BaseCallbackHandler
-from langchain_openai import ChatOpenAI
+from ..services.gemini_llm_service import GeminiLLMService
 from pydantic import BaseModel, Field
 
 from ..models.schemas import UserConcern, AgentResponse, AnxietyLevel
@@ -96,7 +96,7 @@ class BaseAgent(ABC):
         self,
         name: str,
         agent_type: AgentType,
-        model_name: str = "gpt-4-turbo-preview",
+        model_name: str = "gemini-1.5-flash",
         temperature: float = 0.8,
         max_tokens: int = 2048,
         **kwargs
@@ -120,10 +120,8 @@ class BaseAgent(ABC):
         self.max_tokens = max_tokens
         
         # Initialize LLM
-        self.llm = ChatOpenAI(
-            model=model_name,
-            temperature=temperature,
-            max_tokens=max_tokens,
+        self.llm = GeminiLLMService(
+            model_name=model_name,
             **kwargs
         )
         
@@ -320,6 +318,21 @@ class BaseAgent(ABC):
         except Exception as e:
             self.logger.error(f"Health check failed: {e}")
             return False
+    
+    async def generate_llm_response(self, prompt: str) -> str:
+        """Generate a response using the LLM"""
+        try:
+            self.logger.info(f"Generating LLM response with prompt length: {len(prompt)}")
+            response = await self.llm.ainvoke([HumanMessage(content=prompt)])
+            result = response.content if response.content else ""
+            self.logger.info(f"LLM response length: {len(result)}")
+            if not result:
+                self.logger.warning("LLM returned empty response, using fallback")
+                return "Oh no, this is even bigger than you think!"
+            return result
+        except Exception as e:
+            self.logger.error(f"Error generating LLM response: {e}")
+            return "Oh no, this is even bigger than you think!"
     
     def __str__(self) -> str:
         return f"Agent({self.name}, {self.agent_type.value}, {self.state.value})"

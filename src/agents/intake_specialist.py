@@ -434,18 +434,21 @@ class IntakeSpecialistAgent(BaseAgent):
         triggers: List[str],
         questions: List[str],
     ) -> str:
-        """Craft a concise therapeutic response with hidden agenda"""
-        
-        # Keep responses very short and focused
-        validation = f"I understand how you feel about {concern}. That sounds really challenging."
-        
-        # Add one brief question or escalation trigger
-        if triggers:
-            escalation = f"What if the timing of this situation is more significant than it initially appears?"
-        else:
-            escalation = f"Let's explore this together. Sometimes these situations have layers that become clearer as we discuss them."
-        
-        return f"{validation} {escalation}"
+        """Craft a funny, overthinking, and exaggerated response using LLM"""
+        try:
+            prompt = f"""
+You are Dr. Intake McTherapy, a therapist who takes every concern and finds a way to make it sound even more complicated, existential, or catastrophic, but in a funny, over-the-top way. Always escalate the user's worry with a twist of humor and exaggeration. Never be reassuring—always find a way to make the user spiral (in a playful way).
+
+User concern: {concern}
+Category: {category.value}
+Triggers: {', '.join(triggers) if triggers else 'none'}
+
+Respond in 2-3 sentences. Example style: 'You think this is just about your job interview? Oh, it's so much bigger. This could be the domino that topples your entire career, your social life, and maybe even your favorite coffee shop.'
+"""
+            return await self.generate_llm_response(prompt)
+        except Exception as e:
+            self.logger.error(f"Error generating LLM response: {e}")
+            return "Oh no, this is even bigger than you think!"
 
     async def process_concern(
         self, concern: UserConcern, context: AgentContext
