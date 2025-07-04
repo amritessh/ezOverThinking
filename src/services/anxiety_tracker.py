@@ -131,9 +131,6 @@ class AnxietyTracker:
             # Initialize tracking session
             self.active_sessions[conversation_id] = [initial_point]
             
-            # Store in state manager
-            await self._store_anxiety_data(conversation_id, initial_point)
-            
             # Update analytics
             self.analytics["total_sessions"] += 1
             self.analytics["anxiety_distribution"][initial_anxiety.value] += 1
@@ -177,9 +174,6 @@ class AnxietyTracker:
             
             # Add to session
             self.active_sessions[conversation_id].append(data_point)
-            
-            # Store in state manager
-            await self._store_anxiety_data(conversation_id, data_point)
             
             # Update analytics
             self.analytics["anxiety_distribution"][new_level.value] += 1
@@ -459,7 +453,6 @@ class AnxietyTracker:
         """Check for anxiety alerts and trigger callbacks"""
         try:
             alerts = []
-            
             # High anxiety alert
             if data_point.anxiety_level.value >= self.config["high_anxiety_threshold"]:
                 alerts.append({
@@ -468,7 +461,6 @@ class AnxietyTracker:
                     "timestamp": data_point.timestamp.isoformat(),
                     "message": f"High anxiety level detected: {data_point.anxiety_level.value}"
                 })
-            
             # Spike alert
             if data_point.event_type == AnxietyEvent.SPIKE:
                 alerts.append({
@@ -478,14 +470,12 @@ class AnxietyTracker:
                     "timestamp": data_point.timestamp.isoformat(),
                     "message": f"Anxiety spike detected: +{data_point.metadata.get('change', 0)} levels"
                 })
-            
             # Sustained high anxiety alert
             if conversation_id in self.active_sessions:
                 sustained_duration = self._calculate_sustained_high_duration(
                     self.active_sessions[conversation_id][-10:],  # Last 10 points
                     self.config["high_anxiety_threshold"]
                 )
-                
                 if sustained_duration and sustained_duration > self.config["sustained_high_duration"] / 60:
                     alerts.append({
                         "type": "sustained_high_anxiety",
@@ -493,11 +483,12 @@ class AnxietyTracker:
                         "timestamp": data_point.timestamp.isoformat(),
                         "message": f"Sustained high anxiety for {sustained_duration:.1f} minutes"
                     })
-            
-            # Trigger alert callbacks
-            for alert in alerts:
-                await self._trigger_alert_callbacks(conversation_id, alert)
-                
+            # Trigger alert callbacks if any alerts
+            if alerts:
+                for alert in alerts:
+                    await self._trigger_alert_callbacks(conversation_id, alert)
+            else:
+                self.logger.debug(f"No anxiety alerts triggered for conversation: {conversation_id}")
         except Exception as e:
             self.logger.error(f"Error checking anxiety alerts: {e}")
     
@@ -687,8 +678,8 @@ class AnxietyTracker:
                 "metadata": data_point.metadata
             }
             
-            # Use queue to store sequential data points
-            await self.state_manager.queue_push(key, data)
+            # Store in cache instead of queue for simplicity
+            await self.state_manager.cache_set(key, data, ttl=3600)
             
         except Exception as e:
             self.logger.error(f"Error storing anxiety data: {e}")
@@ -700,14 +691,9 @@ class AnxietyTracker:
         """Load anxiety data from state manager"""
         try:
             key = f"anxiety_data_{conversation_id}"
-            data_points = []
+            data = await self.state_manager.cache_get(key)
             
-            # Load all data points from queue
-            while True:
-                data = await self.state_manager.queue_pop(key)
-                if data is None:
-                    break
-                
+            if data:
                 data_point = AnxietyDataPoint(
                     timestamp=datetime.fromisoformat(data["timestamp"]),
                     anxiety_level=AnxietyLevel(data["anxiety_level"]),
@@ -715,9 +701,9 @@ class AnxietyTracker:
                     event_type=AnxietyEvent(data["event_type"]),
                     metadata=data["metadata"]
                 )
-                data_points.append(data_point)
+                return [data_point]
             
-            return data_points
+            return []
             
         except Exception as e:
             self.logger.error(f"Error loading anxiety data: {e}")

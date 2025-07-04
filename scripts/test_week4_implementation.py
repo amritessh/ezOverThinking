@@ -28,7 +28,7 @@ from src.services.state_manager import StateManager
 from src.services.conversation_orchestrator import ConversationOrchestrator, OrchestrationMode
 from src.services.anxiety_tracker import AnxietyTracker
 from src.services.analytics_service import AnalyticsService, AnalyticsTimeframe
-from src.agents.base_agent import AgentFactory
+from src.agents.base_agent import AgentFactory, AgentType
 from src.models.schemas import (
     UserConcern,
     ConversationState,

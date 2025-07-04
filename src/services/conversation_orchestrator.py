@@ -190,7 +190,32 @@ class ConversationOrchestrator:
             
             # Initialize with coordinator if available
             if self.coordinator and orchestration_mode == OrchestrationMode.COORDINATED:
-                self.coordinator.initialize_conversation(user_id, initial_concern)
+                # Create conversation state for coordinator
+                coordinator_state = ConversationState(
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    status=ConversationStatus.ACTIVE,
+                    current_anxiety_level=initial_concern.anxiety_level,
+                    message_count=0,
+                    escalation_count=0,
+                    agents_involved=[],
+                    context={
+                        "initial_concern": initial_concern.dict(),
+                        "strategy": strategy.value,
+                        "phase": ConversationPhase.INTAKE,
+                        "phase_history": []
+                    }
+                )
+                
+                # Add to coordinator's conversation states
+                self.coordinator.conversation_states[conversation_id] = coordinator_state
+                
+                # Start conversation tracking in communication protocol
+                communication_protocol.start_conversation(
+                    conversation_id,
+                    self.coordinator.id,
+                    user_id
+                )
             
             # Track metrics
             self.orchestration_metrics["total_conversations"] += 1
