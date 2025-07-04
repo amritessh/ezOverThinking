@@ -163,7 +163,7 @@ class StateManager:
     ) -> bool:
         """Store conversation state in Redis"""
         try:
-            async with self.distributed_lock(f"conv_{conversation_id}"):
+            async with self.distributed_lock(f"conv_store_{conversation_id}"):
                 key = self.key_patterns["conversation"].format(
                     conversation_id=conversation_id
                 )
@@ -218,7 +218,7 @@ class StateManager:
     ) -> bool:
         """Update specific fields in conversation state"""
         try:
-            async with self.distributed_lock(f"conv_{conversation_id}"):
+            async with self.distributed_lock(f"conv_update_{conversation_id}"):
                 # Get current state
                 current_state = await self.get_conversation_state(conversation_id)
                 if not current_state:

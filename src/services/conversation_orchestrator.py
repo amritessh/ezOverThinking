@@ -564,14 +564,29 @@ class ConversationOrchestrator:
         max_anxiety = 0
         all_next_agents = []
         
+        # Calculate available space for each response
+        base_length = len(combined_content)
+        conclusion_length = len("As you can see, multiple perspectives point to the same concerning patterns. The convergence of these expert opinions suggests this situation requires serious attention.")
+        available_space = 1900 - base_length - conclusion_length  # Leave buffer
+        space_per_response = max(100, available_space // len(responses))  # Minimum 100 chars per response
+        
         for i, (agent, response) in enumerate(responses):
-            combined_content += f"**{agent.name}**: {response.response}\n\n"
+            # Truncate individual responses if needed
+            response_content = response.response
+            if len(response_content) > space_per_response:
+                response_content = response_content[:space_per_response-3] + "..."
+            
+            combined_content += f"**{agent.name}**: {response_content}\n\n"
             max_anxiety = max(max_anxiety, response.anxiety_escalation)
             all_next_agents.extend(response.suggested_next_agents)
         
         # Add synthesis conclusion
         combined_content += "As you can see, multiple perspectives point to the same concerning patterns. "
         combined_content += "The convergence of these expert opinions suggests this situation requires serious attention."
+        
+        # Final truncation to ensure we stay within limits
+        if len(combined_content) > 1900:
+            combined_content = combined_content[:1900] + "...\n\n[Response truncated due to length]"
         
         # Create synthesized response
         return AgentResponse(
@@ -848,7 +863,7 @@ class ConversationOrchestrator:
                 return {"error": "Conversation not found"}
             
             # Get conversation context
-            conversation_context = self.active_conversations.get(conversation_id, {})
+            conversation_context = self.active_conversations.get(conversation_id)
             
             # Get interactions
             interactions = await self.state_manager.get_conversation_interactions(conversation_id)
@@ -868,11 +883,11 @@ class ConversationOrchestrator:
                 "escalation_events": conversation_state.escalation_count,
                 "agents_involved": conversation_state.agents_involved,
                 "agent_count": len(conversation_state.agents_involved),
-                "orchestration_mode": conversation_context.get("orchestration_mode", "unknown"),
-                "strategy": conversation_context.get("strategy", "unknown"),
+                "orchestration_mode": conversation_context.orchestration_mode.value if conversation_context else "unknown",
+                "strategy": conversation_context.strategy.value if conversation_context else "unknown",
                 "interactions": len(interactions),
                 "anxiety_progression": anxiety_progression,
-                "orchestration_history": conversation_context.get("orchestration_history", []),
+                "orchestration_history": conversation_context.orchestration_history if conversation_context else [],
                 "created_at": conversation_state.created_at.isoformat(),
                 "updated_at": conversation_state.updated_at.isoformat()
             }
