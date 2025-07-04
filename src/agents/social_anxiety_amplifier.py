@@ -444,6 +444,10 @@ class SocialAnxietyAmplifierAgent(BaseAgent):
             full_analysis += f"{judgment_analysis}\n\n{conspiracy_theory}\n\n{reputation_forecast}\n\n"
             full_analysis += "🎭 **Social Reality Check**: Everyone is more socially aware than you think, and they're definitely analyzing this situation more deeply than you realize. Your social reputation is being evaluated and discussed in ways you're not even aware of."
             
+            # Truncate to stay within 2000 character limit
+            if len(full_analysis) > 1900:  # Leave some buffer
+                full_analysis = full_analysis[:1900] + "...\n\n[Response truncated due to length]"
+            
             # Calculate escalation level
             escalation_level = min(5, len(scenario["escalation_chain"]))
             

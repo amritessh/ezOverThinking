@@ -270,6 +270,7 @@ class BaseAgent(ABC):
             Formatted AgentResponse
         """
         return AgentResponse(
+            agent_id=self.id,
             agent_name=self.name,
             response=content,
             anxiety_escalation=anxiety_escalation,

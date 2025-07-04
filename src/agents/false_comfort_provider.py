@@ -425,6 +425,10 @@ class FalseComfortProviderAgent(BaseAgent):
             # Combine all elements
             full_response = f"{comfort_sequence}\n\n{hope_destruction}\n\n{what_if_scenarios}\n\n{caring_conclusion}"
             
+            # Truncate to stay within 2000 character limit
+            if len(full_response) > 1900:  # Leave some buffer
+                full_response = full_response[:1900] + "...\n\n[Response truncated due to length]"
+            
             # Calculate anxiety level (very high due to false hope destruction)
             anxiety_level = 5  # Maximum anxiety through false comfort
             
