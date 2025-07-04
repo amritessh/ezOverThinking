@@ -119,6 +119,7 @@ class AnxietyTracker:
         agent_id: str = "system"
     ) -> bool:
         """Start tracking anxiety for a conversation"""
+        self.logger.debug(f"start_tracking called with conversation_id={conversation_id} (type: {type(conversation_id)}), initial_anxiety={initial_anxiety} (type: {type(initial_anxiety)}), agent_id={agent_id} (type: {type(agent_id)})")
         try:
             # Create initial data point
             initial_point = AnxietyDataPoint(
@@ -138,9 +139,9 @@ class AnxietyTracker:
             
             self.logger.info(f"Started anxiety tracking for conversation: {conversation_id}")
             return True
-            
+        
         except Exception as e:
-            self.logger.error(f"Error starting anxiety tracking: {e}")
+            self.logger.error(f"Error starting anxiety tracking: {e} (type: {type(e)})")
             return False
     
     async def track_anxiety_change(
@@ -151,6 +152,7 @@ class AnxietyTracker:
         agent_id: str = "unknown"
     ) -> bool:
         """Track anxiety level change"""
+        self.logger.debug(f"track_anxiety_change called with conversation_id={conversation_id} (type: {type(conversation_id)}), old_level={old_level} (type: {type(old_level)}), new_level={new_level} (type: {type(new_level)}), agent_id={agent_id} (type: {type(agent_id)})")
         try:
             if conversation_id not in self.active_sessions:
                 self.logger.warning(f"No active tracking session for conversation: {conversation_id}")
@@ -158,6 +160,7 @@ class AnxietyTracker:
             
             # Determine event type
             event_type = self._classify_anxiety_event(old_level, new_level)
+            self.logger.debug(f"event_type from _classify_anxiety_event: {event_type} (type: {type(event_type)})")
             
             # Create data point
             data_point = AnxietyDataPoint(
@@ -180,16 +183,18 @@ class AnxietyTracker:
             self.analytics["event_counts"][event_type.value] += 1
             
             # Check for alerts
-            await self._check_anxiety_alerts(conversation_id, data_point)
+            alert_result = await self._check_anxiety_alerts(conversation_id, data_point)
+            self.logger.debug(f"Result of _check_anxiety_alerts: {alert_result} (type: {type(alert_result)})")
             
             # Analyze patterns
-            await self._analyze_anxiety_patterns(conversation_id)
+            pattern_result = await self._analyze_anxiety_patterns(conversation_id)
+            self.logger.debug(f"Result of _analyze_anxiety_patterns: {pattern_result} (type: {type(pattern_result)})")
             
             self.logger.debug(f"Tracked anxiety change: {old_level.value} -> {new_level.value} ({event_type.value})")
             return True
-            
+        
         except Exception as e:
-            self.logger.error(f"Error tracking anxiety change: {e}")
+            self.logger.error(f"Error tracking anxiety change: {e} (type: {type(e)})")
             return False
     
     async def get_anxiety_progression(
@@ -502,12 +507,13 @@ class AnxietyTracker:
             for callback in self.alert_callbacks:
                 try:
                     if asyncio.iscoroutinefunction(callback):
-                        await callback(conversation_id, alert)
+                        result = await callback(conversation_id, alert)
                     else:
-                        callback(conversation_id, alert)
+                        result = callback(conversation_id, alert)
+                    if result is not None:
+                        self.logger.warning(f"Alert callback returned non-None value: {result} (type: {type(result)})")
                 except Exception as e:
                     self.logger.error(f"Error in alert callback: {e}")
-                    
         except Exception as e:
             self.logger.error(f"Error triggering alert callbacks: {e}")
     

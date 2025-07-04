@@ -306,8 +306,11 @@ class Week4Tester:
             
             def test_alert_callback(conv_id, alert):
                 nonlocal alert_received
-                alert_received = True
-                self.logger.info(f"Alert received: {alert}")
+                try:
+                    alert_received = True
+                    self.logger.info(f"Alert received: {alert}")
+                except Exception as e:
+                    self.logger.error(f"Exception in test_alert_callback: {e}")
             
             self.anxiety_tracker.add_alert_callback(test_alert_callback)
             
