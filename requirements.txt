@@ -37,10 +37,10 @@ aiohttp==3.9.5
 requests==2.31.0
 
 # Development & Code Quality
-black==24.4.2
-ruff==0.4.4
-mypy==1.10.0
-pre-commit==3.7.1
+# black==24.4.2
+# ruff==0.4.4
+# mypy==1.10.0
+# pre-commit==3.7.1
 
 # Monitoring & Logging
 prometheus-client==0.20.0
