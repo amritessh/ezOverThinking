@@ -1,7 +1,7 @@
 # ezOverThinking 🌪️
 ## Multi-Agent AI System for Creative Anxiety Escalation
 
-[![Live Demo](https://7f9a521e3022e402cf.gradio.live/)](your-streamlit-url)
+[![Live Demo](hhttps://7f9a521e3022e402cf.gradio.live/)](https://7f9a521e3022e402cf.gradio.live/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -23,12 +23,13 @@
 ### 🚀 Live Demo
 **[Try ezOverThinking Live](https://7f9a521e3022e402cf.gradio.live/)**
 
-![Demo Screenshot](Screen Recording 2025-07-04 at 6.57.27 PM.mov)
+### 📹 Demo Video
+https://github.com/amriteshanand/ezOverThinking/assets/your-username/Screen%20Recording%202025-07-04%20at%206.57.27%20PM.mov
 
 ### 🏗️ Technical Architecture
 ┌─────────────────────────────────────────────────────────────┐
 │                    User Interface                           │
-│                   (Streamlit)                               │
+│                   (Gradio)                                 │
 └─────────────────────────┬───────────────────────────────────┘
 │
 ┌─────────────────────────┴───────────────────────────────────┐
@@ -67,12 +68,12 @@
 - **LangChain** - AI agent framework and orchestration
 - **CrewAI** - Multi-agent coordination patterns
 - **FastAPI** - High-performance async web framework
-- **Streamlit** - Interactive web interface
+- **Gradio** - Interactive web interface
 - **Redis** - Real-time state management and caching
 - **Pydantic** - Data validation and type safety
 
 **AI & ML:**
-- **OpenAI GPT-4** - Core language model
+- **Google Gemini** - Core language model
 - **Custom Agent Architectures** - Specialized AI personalities
 - **Multi-Agent Coordination** - Agent-to-agent communication
 - **Real-time Analytics** - Conversation pattern analysis
@@ -80,7 +81,7 @@
 **Production & DevOps:**
 - **Docker** - Containerization and deployment
 - **GitHub Actions** - CI/CD pipeline
-- **Streamlit Cloud** - Production deployment
+- **Gradio Cloud** - Production deployment
 - **Prometheus/Grafana** - Monitoring and observability
 
 ### ⚡ Quick Start
@@ -99,82 +100,40 @@ pip install -r requirements.txt
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your OpenAI API key
+# Edit .env with your Google Gemini API key
 
-# Run the application
-streamlit run deployment/streamlit_app.py
+# Start the backend
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
+# In another terminal, start the frontend
+python gradio_app.py
+```
 
-### 🛠️ Technology Stack
+### 🎯 Key Features
 
-**Core Technologies:**
-- **Python 3.9+** - Primary development language
-- **LangChain** - AI agent framework and orchestration
-- **CrewAI** - Multi-agent coordination patterns
-- **FastAPI** - High-performance async web framework
-- **Streamlit** - Interactive web interface
-- **Redis** - Real-time state management and caching
-- **Pydantic** - Data validation and type safety
+**🤖 Multi-Agent Coordination**
+- 6 Specialized AI Agents with distinct personalities
+- Real-time Agent Communication with structured protocols
+- Adaptive Conversation Flow based on user responses
+- Escalation Algorithms for progressive anxiety amplification
 
-**AI & ML:**
-- **OpenAI GPT-4** - Core language model
-- **Custom Agent Architectures** - Specialized AI personalities
-- **Multi-Agent Coordination** - Agent-to-agent communication
-- **Real-time Analytics** - Conversation pattern analysis
+**📊 Advanced Analytics**
+- Real-time Anxiety Tracking with level progression
+- Conversation Pattern Analysis and insights
+- Agent Performance Metrics and optimization
+- Interactive Dashboard with live charts
 
-**Production & DevOps:**
-- **Docker** - Containerization and deployment
-- **GitHub Actions** - CI/CD pipeline
-- **Streamlit Cloud** - Production deployment
-- **Prometheus/Grafana** - Monitoring and observability
+**🔧 Production-Ready Architecture**
+- Async/Await Throughout for high performance
+- Comprehensive Error Handling and logging
+- State Management with Redis persistence
+- WebSocket Support for real-time communication
 
-### ⚡ Quick Start
+### 🏆 Technical Highlights
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/ezoverthinking.git
-cd ezoverthinking
-
-# Set up virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your OpenAI API key
-
-# Run the application
-streamlit run deployment/streamlit_app.py
-
-
-🎯 Key Features
-🤖 Multi-Agent Coordination
-
-6 Specialized AI Agents with distinct personalities
-Real-time Agent Communication with structured protocols
-Adaptive Conversation Flow based on user responses
-Escalation Algorithms for progressive anxiety amplification
-
-📊 Advanced Analytics
-
-Real-time Anxiety Tracking with level progression
-Conversation Pattern Analysis and insights
-Agent Performance Metrics and optimization
-Interactive Dashboard with live charts
-
-🔧 Production-Ready Architecture
-
-Async/Await Throughout for high performance
-Comprehensive Error Handling and logging
-State Management with Redis persistence
-WebSocket Support for real-time communication
-
-🏆 Technical Highlights
-Advanced AI Patterns
-python# Example: Agent Coordination Pattern
+**Advanced AI Patterns**
+```python
+# Example: Agent Coordination Pattern
 class AgentCoordinator:
     async def orchestrate_conversation(self, user_input: str) -> AgentResponse:
         # Analyze conversation context
@@ -190,8 +149,11 @@ class AgentCoordinator:
         await self.update_conversation_state(response)
         
         return response
-Real-time State Management
-python# Example: Redis-based State Management
+```
+
+**Real-time State Management**
+```python
+# Example: Redis-based State Management
 class StateManager:
     async def track_conversation_state(self, session_id: str, state: ConversationState):
         await self.redis.setex(
@@ -199,56 +161,68 @@ class StateManager:
             3600,  # 1 hour TTL
             state.json()
         )
-📈 Performance Metrics
+```
 
-Response Time: < 100ms average
-Concurrent Users: 100+ supported
-Agent Coordination: 5 strategies implemented
-Conversation Patterns: 10+ types recognized
-Analytics Dashboard: Real-time updates
+### 📈 Performance Metrics
 
-🧪 Testing & Quality
+- **Response Time**: < 100ms average
+- **Concurrent Users**: 100+ supported
+- **Agent Coordination**: 5 strategies implemented
+- **Conversation Patterns**: 10+ types recognized
+- **Analytics Dashboard**: Real-time updates
 
-90%+ Test Coverage with comprehensive test suite
-Performance Testing with load simulation
-Security Testing with vulnerability scanning
-Code Quality with automated linting and formatting
+### 🧪 Testing & Quality
 
-🚀 Deployment
-Local Development
-bash# Start with Docker Compose
+- **90%+ Test Coverage** with comprehensive test suite
+- **Performance Testing** with load simulation
+- **Security Testing** with vulnerability scanning
+- **Code Quality** with automated linting and formatting
+
+### 🚀 Deployment
+
+**Local Development**
+```bash
+# Start with Docker Compose
 docker-compose up -d
 
 # Access application
-open http://localhost:8501
-Production Deployment
+open http://localhost:7860
+```
 
-Streamlit Cloud - Primary deployment platform
-Docker Support - Containerized deployment ready
-CI/CD Pipeline - Automated testing and deployment
-Monitoring - Comprehensive logging and metrics
+**Production Deployment**
+- **Gradio Cloud** - Primary deployment platform
+- **Docker Support** - Containerized deployment ready
+- **CI/CD Pipeline** - Automated testing and deployment
+- **Monitoring** - Comprehensive logging and metrics
 
-🎨 Screenshots
-Main Chat Interface
-Show Image
-Analytics Dashboard
-Show Image
-Agent Coordination Flow
-Show Image
-🤝 Contributing
+### 🎨 Screenshots
+
+**Main Chat Interface**
+![Main Interface](docs/images/main-interface.png)
+
+**Analytics Dashboard**
+![Analytics](docs/images/analytics.png)
+
+**Agent Coordination Flow**
+![Agent Flow](docs/images/agent-flow.png)
+
+### 🤝 Contributing
+
 We welcome contributions! Please read our Contributing Guide for details on:
 
-Code style and standards
-Testing requirements
-Pull request process
-Issue templates
+- Code style and standards
+- Testing requirements
+- Pull request process
+- Issue templates
 
-📄 License
+### 📄 License
+
 This project is licensed under the MIT License - see the LICENSE file for details.
-🙏 Acknowledgments
 
-OpenAI for GPT-4 API
-LangChain for agent frameworks
-Streamlit for rapid UI development
-FastAPI for high-performance backend
-CrewAI for multi-agent patterns
+### 🙏 Acknowledgments
+
+- **Google** for Gemini API
+- **LangChain** for agent frameworks
+- **Gradio** for rapid UI development
+- **FastAPI** for high-performance backend
+- **CrewAI** for multi-agent patterns
