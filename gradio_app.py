@@ -1,8 +1,5 @@
 import gradio as gr
 import requests
-import json
-from datetime import datetime
-from typing import Dict, List, Any
 
 
 def chat_with_agent(message, history, agent_type="auto"):
@@ -30,69 +27,23 @@ def chat_with_agent(message, history, agent_type="auto"):
             anxiety_level = data.get("anxiety_level", 0)
 
             # Return just the agent reply (the agent name will be handled by the backend)
-            return agent_reply, agent_name, anxiety_level
+            return agent_reply
         else:
-            return f"Error: {response.status_code} - {response.text}", "Error", 0
+            return f"Error: {response.status_code} - {response.text}"
 
     except Exception as e:
-        return f"Error connecting to backend: {str(e)}", "Error", 0
+        return f"Error connecting to backend: {str(e)}"
 
 
 def clear_chat():
     """Clear the chat history"""
-    return [], "", {"total_messages": 0, "current_anxiety": "Calm", "agents_used": []}
-
-
-def get_anxiety_color(level):
-    """Get color for anxiety level"""
-    colors = {
-        "calm": "#2ED573",
-        "mild": "#FFA07A", 
-        "moderate": "#FF6B6B",
-        "high": "#FF4757",
-        "extreme": "#8B0000"
-    }
-    return colors.get(level.lower(), "#2ED573")
-
-
-def format_analytics(history, agents_used, anxiety_level):
-    """Format analytics data for display"""
-    total_messages = len(history) if history else 0
-    
-    # Count agent usage
-    agent_counts = {}
-    for agent in agents_used:
-        agent_counts[agent] = agent_counts.get(agent, 0) + 1
-    
-    # Create analytics summary
-    analytics_html = f"""
-    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
-        <h4 style="margin: 0 0 0.5rem 0; color: #333;">📊 Conversation Analytics</h4>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div>
-                <strong>Total Messages:</strong> {total_messages}<br>
-                <strong>Current Anxiety:</strong> 
-                <span style="color: {get_anxiety_color(anxiety_level)}; font-weight: bold;">
-                    {anxiety_level.title()}
-                </span>
-            </div>
-            <div>
-                <strong>Agents Used:</strong><br>
-                {', '.join([f"{agent} ({count})" for agent, count in agent_counts.items()]) if agent_counts else 'None yet'}
-            </div>
-        </div>
-    </div>
-    """
-    return analytics_html
+    return [], ""
 
 
 # Create the Gradio interface
 with gr.Blocks(title="ezOverThinking Chat", theme=gr.themes.Soft()) as demo:
     gr.Markdown("# 🤔 ezOverThinking Chat")
     gr.Markdown("Chat with your AI-powered overthinking agents!")
-
-    # Initialize analytics state
-    analytics_state = gr.State({"total_messages": 0, "current_anxiety": "Calm", "agents_used": []})
 
     with gr.Row():
         with gr.Column(scale=3):
@@ -118,12 +69,6 @@ with gr.Blocks(title="ezOverThinking Chat", theme=gr.themes.Soft()) as demo:
 
             with gr.Row():
                 clear_btn = gr.Button("Clear Chat", variant="secondary")
-
-            # Analytics display
-            analytics_display = gr.HTML(
-                value=format_analytics([], [], "Calm"),
-                label="Analytics"
-            )
 
         with gr.Column(scale=1):
             # Conversation suggestions moved to right column
@@ -151,13 +96,6 @@ with gr.Blocks(title="ezOverThinking Chat", theme=gr.themes.Soft()) as demo:
                 info="Choose a specific agent or let the system decide",
             )
 
-            # Anxiety level indicator
-            gr.Markdown("### 🌡️ Current Anxiety Level")
-            anxiety_indicator = gr.HTML(
-                value='<div style="background: #2ED573; color: white; padding: 0.5rem; border-radius: 8px; text-align: center; font-weight: bold;">Calm</div>',
-                label="Anxiety Level"
-            )
-
             gr.Markdown("### About")
             gr.Markdown(
                 """
@@ -170,14 +108,14 @@ with gr.Blocks(title="ezOverThinking Chat", theme=gr.themes.Soft()) as demo:
             )
 
     # Set up event handlers
-    def handle_chat(message, history, agent_type, analytics):
+    def handle_chat(message, history, agent_type):
         # Clean the message and check if it's empty
         message = message.strip() if message else ""
         if not message:
-            return history, "", analytics, analytics["current_anxiety"]
+            return history, ""
 
         # Get agent response first
-        agent_response, agent_name, anxiety_level = chat_with_agent(message, history, agent_type)
+        agent_response = chat_with_agent(message, history, agent_type)
 
         # Add user message to history using new format
         history.append({"role": "user", "content": message})
@@ -185,45 +123,26 @@ with gr.Blocks(title="ezOverThinking Chat", theme=gr.themes.Soft()) as demo:
         # Add agent response to history using new format
         history.append({"role": "assistant", "content": agent_response})
 
-        # Update analytics
-        analytics["total_messages"] = len(history)
-        analytics["current_anxiety"] = anxiety_level.title() if anxiety_level else "Calm"
-        if agent_name and agent_name != "Error":
-            analytics["agents_used"].append(agent_name)
-
-        # Update analytics display
-        analytics_html = format_analytics(history, analytics["agents_used"], analytics["current_anxiety"])
-        
-        # Update anxiety indicator
-        anxiety_color = get_anxiety_color(analytics["current_anxiety"])
-        anxiety_html = f'<div style="background: {anxiety_color}; color: white; padding: 0.5rem; border-radius: 8px; text-align: center; font-weight: bold;">{analytics["current_anxiety"]}</div>'
-
         # Clear the input field
-        return history, "", analytics, analytics_html
+        return history, ""
 
     # Connect the send button and Enter key
     send_btn.click(
         handle_chat,
-        inputs=[message_input, chatbot, agent_dropdown, analytics_state],
-        outputs=[chatbot, message_input, analytics_state, anxiety_indicator],
+        inputs=[message_input, chatbot, agent_dropdown],
+        outputs=[chatbot, message_input],
     )
 
     # Enable Enter key submission (this should make Enter work)
     message_input.submit(
         handle_chat,
-        inputs=[message_input, chatbot, agent_dropdown, analytics_state],
-        outputs=[chatbot, message_input, analytics_state, anxiety_indicator],
+        inputs=[message_input, chatbot, agent_dropdown],
+        outputs=[chatbot, message_input],
         api_name="submit_message",
     )
 
     # Clear chat functionality
-    def clear_all():
-        empty_analytics = {"total_messages": 0, "current_anxiety": "Calm", "agents_used": []}
-        empty_analytics_html = format_analytics([], [], "Calm")
-        empty_anxiety_html = '<div style="background: #2ED573; color: white; padding: 0.5rem; border-radius: 8px; text-align: center; font-weight: bold;">Calm</div>'
-        return [], "", empty_analytics, empty_anxiety_html
-
-    clear_btn.click(clear_all, outputs=[chatbot, message_input, analytics_state, anxiety_indicator])
+    clear_btn.click(clear_chat, outputs=[chatbot, message_input])
 
 
 if __name__ == "__main__":
