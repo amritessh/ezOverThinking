@@ -1,7 +1,7 @@
 # ezOverThinking 🌪️
 ## Multi-Agent AI System for Creative Anxiety Escalation
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live-brightgreen)](your-streamlit-url)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-brightgreen)](https://09cc7f921545f5609a.gradio.live)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -21,14 +21,14 @@
 | **Dr. Comfort McBackstab** | False Hope Provider | Building hope just to undermine it |
 
 ### 🚀 Live Demo
-**[Try ezOverThinking Live](your-streamlit-url)**
+**[Try ezOverThinking Live](https://09cc7f921545f5609a.gradio.live)**
 
 ![Demo Screenshot](assets/demo-screenshot.png)
 
 ### 🏗️ Technical Architecture
 ┌─────────────────────────────────────────────────────────────┐
 │                    User Interface                           │
-│                   (Streamlit)                               │
+│                   (Gradio)                                  │
 └─────────────────────────┬───────────────────────────────────┘
 │
 ┌─────────────────────────┴───────────────────────────────────┐
@@ -67,12 +67,12 @@
 - **LangChain** - AI agent framework and orchestration
 - **CrewAI** - Multi-agent coordination patterns
 - **FastAPI** - High-performance async web framework
-- **Streamlit** - Interactive web interface
+- **Gradio** - Interactive web interface
 - **Redis** - Real-time state management and caching
 - **Pydantic** - Data validation and type safety
 
 **AI & ML:**
-- **OpenAI GPT-4** - Core language model
+- **Google Gemini** - Core language model
 - **Custom Agent Architectures** - Specialized AI personalities
 - **Multi-Agent Coordination** - Agent-to-agent communication
 - **Real-time Analytics** - Conversation pattern analysis
@@ -80,7 +80,7 @@
 **Production & DevOps:**
 - **Docker** - Containerization and deployment
 - **GitHub Actions** - CI/CD pipeline
-- **Streamlit Cloud** - Production deployment
+- **Gradio Cloud** - Production deployment
 - **Prometheus/Grafana** - Monitoring and observability
 
 ### ⚡ Quick Start
@@ -99,56 +99,14 @@ pip install -r requirements.txt
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your OpenAI API key
+# Edit .env with your Google Gemini API key
 
-# Run the application
-streamlit run deployment/streamlit_app.py
+# Start the backend API
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
-
-### 🛠️ Technology Stack
-
-**Core Technologies:**
-- **Python 3.9+** - Primary development language
-- **LangChain** - AI agent framework and orchestration
-- **CrewAI** - Multi-agent coordination patterns
-- **FastAPI** - High-performance async web framework
-- **Streamlit** - Interactive web interface
-- **Redis** - Real-time state management and caching
-- **Pydantic** - Data validation and type safety
-
-**AI & ML:**
-- **OpenAI GPT-4** - Core language model
-- **Custom Agent Architectures** - Specialized AI personalities
-- **Multi-Agent Coordination** - Agent-to-agent communication
-- **Real-time Analytics** - Conversation pattern analysis
-
-**Production & DevOps:**
-- **Docker** - Containerization and deployment
-- **GitHub Actions** - CI/CD pipeline
-- **Streamlit Cloud** - Production deployment
-- **Prometheus/Grafana** - Monitoring and observability
-
-### ⚡ Quick Start
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/ezoverthinking.git
-cd ezoverthinking
-
-# Set up virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your OpenAI API key
-
-# Run the application
-streamlit run deployment/streamlit_app.py
-
+# In another terminal, start the Gradio frontend
+python gradio_app.py
+```
 
 🎯 Key Features
 🤖 Multi-Agent Coordination
@@ -220,10 +178,10 @@ bash# Start with Docker Compose
 docker-compose up -d
 
 # Access application
-open http://localhost:8501
+open http://localhost:7860
 Production Deployment
 
-Streamlit Cloud - Primary deployment platform
+Gradio Cloud - Primary deployment platform
 Docker Support - Containerized deployment ready
 CI/CD Pipeline - Automated testing and deployment
 Monitoring - Comprehensive logging and metrics
@@ -247,8 +205,8 @@ Issue templates
 This project is licensed under the MIT License - see the LICENSE file for details.
 🙏 Acknowledgments
 
-OpenAI for GPT-4 API
+Google for Gemini API
 LangChain for agent frameworks
-Streamlit for rapid UI development
+Gradio for rapid UI development
 FastAPI for high-performance backend
 CrewAI for multi-agent patterns
