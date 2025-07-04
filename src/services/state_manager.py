@@ -682,6 +682,53 @@ class StateManager:
             self.logger.error(f"Error during cleanup: {e}")
             return {"error": str(e)}
 
+    async def cleanup(self):
+        """Cleanup resources"""
+        try:
+            if self.redis:
+                await self.redis.close()
+            self.logger.info("StateManager cleanup completed")
+        except Exception as e:
+            self.logger.error(f"Error during StateManager cleanup: {e}")
+
+    async def cleanup_expired_sessions(self):
+        """Clean up expired sessions and conversation states"""
+        try:
+            # Get all session keys
+            session_keys = await self.redis.keys("session:*")
+            conversation_keys = await self.redis.keys("conversation:*")
+            
+            current_time = datetime.now()
+            expired_count = 0
+            
+            # Check session expiration
+            for key in session_keys:
+                session_data = await self.redis.get(key)
+                if session_data:
+                    session = json.loads(session_data)
+                    if "expires_at" in session:
+                        expires_at = datetime.fromisoformat(session["expires_at"])
+                        if current_time > expires_at:
+                            await self.redis.delete(key)
+                            expired_count += 1
+            
+            # Check conversation expiration (older than 24 hours)
+            for key in conversation_keys:
+                conversation_data = await self.redis.get(key)
+                if conversation_data:
+                    conversation = json.loads(conversation_data)
+                    if "created_at" in conversation:
+                        created_at = datetime.fromisoformat(conversation["created_at"])
+                        if current_time - created_at > timedelta(hours=24):
+                            await self.redis.delete(key)
+                            expired_count += 1
+            
+            if expired_count > 0:
+                self.logger.info(f"Cleaned up {expired_count} expired sessions/conversations")
+                
+        except Exception as e:
+            self.logger.error(f"Error cleaning up expired sessions: {e}")
+
 
 # Global state manager instance
 state_manager = StateManager()

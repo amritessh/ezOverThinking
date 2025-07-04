@@ -905,22 +905,29 @@ class AnalyticsService:
             self.logger.error(f"Error loading historical metrics: {e}")
     
     async def _save_metrics(self):
-        """Save current metrics to storage"""
+        """Save metrics to persistent storage"""
         try:
-            # Save metrics history
-            await self.state_manager.store_analytics_data(
-                "metrics_history", 
-                self.metrics_history
-            )
-            
-            # Save performance metrics
-            await self.state_manager.store_analytics_data(
-                "analytics_performance", 
-                self.performance_metrics
-            )
-            
+            # Save to Redis or database
+            await self.state_manager.store_analytics_metrics("analytics_service", self.metrics_history)
+            self.logger.info("Analytics metrics saved successfully")
         except Exception as e:
-            self.logger.error(f"Error saving metrics: {e}")
+            self.logger.error(f"Error saving analytics metrics: {e}")
+    
+    async def process_background_analytics(self):
+        """Process background analytics tasks"""
+        try:
+            # Update real-time metrics
+            await self._real_time_metrics_update()
+            
+            # Aggregate metrics
+            await self._metrics_aggregation()
+            
+            # Clean up expired cache
+            await self._clear_expired_cache()
+            
+            self.logger.debug("Background analytics processing completed")
+        except Exception as e:
+            self.logger.error(f"Error in background analytics processing: {e}")
     
     async def generate_analytics_report(
         self, 

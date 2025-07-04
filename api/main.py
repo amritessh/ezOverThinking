@@ -37,53 +37,92 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
 
     try:
-        # Initialize core services
-        services["state_manager"] = StateManager(
-            redis_url=settings.redis_url, ttl_seconds=settings.state_ttl
-        )
-        await services["state_manager"].initialize()
+        # Initialize core services with error handling
+        try:
+            services["state_manager"] = StateManager(
+                redis_url=settings.redis_url, ttl_seconds=settings.state_ttl
+            )
+            connected = await services["state_manager"].connect()
+            if connected:
+                logger.info("✅ StateManager connected")
+            else:
+                logger.warning("⚠️ StateManager failed to connect to Redis")
+                services["state_manager"] = None
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize StateManager: {e}")
+            services["state_manager"] = None
 
-        services["anxiety_tracker"] = AnxietyTracker(
-            state_manager=services["state_manager"]
-        )
-        await services["anxiety_tracker"].initialize()
+        try:
+            if services.get("state_manager"):
+                services["anxiety_tracker"] = AnxietyTracker(
+                    state_manager=services["state_manager"]
+                )
+                await services["anxiety_tracker"].initialize()
+                logger.info("✅ AnxietyTracker initialized")
+            else:
+                logger.warning("⚠️ Skipping AnxietyTracker initialization (StateManager not available)")
+                services["anxiety_tracker"] = None
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize AnxietyTracker: {e}")
+            services["anxiety_tracker"] = None
 
-        services["analytics_service"] = AnalyticsService(
-            state_manager=services["state_manager"]
-        )
-        await services["analytics_service"].initialize()
+        try:
+            if services.get("state_manager"):
+                services["analytics_service"] = AnalyticsService(
+                    state_manager=services["state_manager"]
+                )
+                await services["analytics_service"].initialize()
+                logger.info("✅ AnalyticsService initialized")
+            else:
+                logger.warning("⚠️ Skipping AnalyticsService initialization (StateManager not available)")
+                services["analytics_service"] = None
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize AnalyticsService: {e}")
+            services["analytics_service"] = None
 
-        services["conversation_orchestrator"] = ConversationOrchestrator(
-            state_manager=services["state_manager"],
-            anxiety_tracker=services["anxiety_tracker"],
-            analytics_service=services["analytics_service"],
-        )
-        await services["conversation_orchestrator"].initialize()
+        try:
+            if all([services.get("state_manager"), services.get("anxiety_tracker")]):
+                services["conversation_orchestrator"] = ConversationOrchestrator(
+                    state_manager=services["state_manager"],
+                    anxiety_tracker=services["anxiety_tracker"]
+                )
+                await services["conversation_orchestrator"].initialize()
+                logger.info("✅ ConversationOrchestrator initialized")
+            else:
+                logger.warning("⚠️ Skipping ConversationOrchestrator initialization (dependencies not available)")
+                services["conversation_orchestrator"] = None
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize ConversationOrchestrator: {e}")
+            services["conversation_orchestrator"] = None
 
-        logger.info("✅ All services initialized successfully")
+        logger.info("✅ Service initialization completed")
 
         # Set services in dependencies
         set_services(services)
 
-        # Start background tasks
-        asyncio.create_task(analytics_background_task())
-        asyncio.create_task(cleanup_background_task())
+        # Start background tasks only if services are available
+        if services.get("analytics_service"):
+            asyncio.create_task(analytics_background_task())
+        if services.get("state_manager"):
+            asyncio.create_task(cleanup_background_task())
 
         yield
 
     except Exception as e:
-        logger.error(f"❌ Failed to initialize services: {e}")
-        raise
+        logger.error(f"❌ Critical error during startup: {e}")
+        # Don't raise - let the app start anyway
+        yield
     finally:
         # Cleanup
         logger.info("🔄 Shutting down services...")
         for service_name, service in services.items():
-            try:
-                if hasattr(service, "cleanup"):
-                    await service.cleanup()
-                logger.info(f"✅ {service_name} cleaned up")
-            except Exception as e:
-                logger.error(f"❌ Error cleaning up {service_name}: {e}")
+            if service:
+                try:
+                    if hasattr(service, "cleanup"):
+                        await service.cleanup()
+                    logger.info(f"✅ {service_name} cleaned up")
+                except Exception as e:
+                    logger.error(f"❌ Error cleaning up {service_name}: {e}")
 
 
 # Create FastAPI app
