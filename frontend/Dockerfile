@@ -13,6 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy frontend code
 COPY . .
 
+# Create .streamlit directory and copy secrets
+RUN mkdir -p /app/.streamlit
+COPY frontend/.streamlit/secrets.toml /app/.streamlit/secrets.toml
+
 EXPOSE 8501
 
 CMD ["streamlit", "run", "frontend/main.py", "--server.address", "0.0.0.0", "--server.port", "8501"] 

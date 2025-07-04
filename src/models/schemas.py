@@ -319,6 +319,42 @@ class AgentPerformanceMetrics(BaseModel):
         json_encoders = {datetime: lambda v: v.isoformat()}
 
 
+class SystemAnalytics(BaseModel):
+    """System-wide analytics data"""
+
+    total_conversations: int = Field(
+        default=0, ge=0, description="Total number of conversations"
+    )
+    active_conversations: int = Field(
+        default=0, ge=0, description="Currently active conversations"
+    )
+    total_users: int = Field(default=0, ge=0, description="Total number of users")
+    average_anxiety_level: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=5.0,
+        description="Average anxiety level across all users",
+    )
+    system_uptime: float = Field(
+        default=0.0, ge=0.0, description="System uptime in seconds"
+    )
+    average_response_time: float = Field(
+        default=0.0, ge=0.0, description="Average response time across all agents"
+    )
+    error_rate: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Overall system error rate"
+    )
+    agent_performance: List[AgentPerformanceMetrics] = Field(
+        default_factory=list, description="Performance metrics for all agents"
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.now, description="When analytics were generated"
+    )
+
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}
+
+
 # ==========================================
 # API Request/Response Models
 # ==========================================
@@ -462,9 +498,10 @@ class SystemConfig(BaseModel):
 # WebSocket Models
 # ==========================================
 
+
 class WebSocketMessageType(Enum):
     """Types of WebSocket messages"""
-    
+
     CHAT = "chat"
     SYSTEM = "system"
     TYPING = "typing"
@@ -475,14 +512,18 @@ class WebSocketMessageType(Enum):
 
 class WebSocketMessage(BaseModel):
     """WebSocket message model for real-time communication"""
-    
+
     message_type: WebSocketMessageType = Field(..., description="Type of message")
     conversation_id: str = Field(..., description="Conversation identifier")
     user_id: str = Field(..., description="User identifier")
     content: str = Field(..., description="Message content")
-    timestamp: datetime = Field(default_factory=datetime.now, description="Message timestamp")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-    
+    timestamp: datetime = Field(
+        default_factory=datetime.now, description="Message timestamp"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat(),
@@ -492,13 +533,17 @@ class WebSocketMessage(BaseModel):
 
 class WebSocketStatus(BaseModel):
     """WebSocket connection status"""
-    
-    status: str = Field(..., description="Connection status (connected, disconnected, error)")
+
+    status: str = Field(
+        ..., description="Connection status (connected, disconnected, error)"
+    )
     conversation_id: str = Field(..., description="Conversation identifier")
     user_id: str = Field(..., description="User identifier")
-    timestamp: datetime = Field(default_factory=datetime.now, description="Status timestamp")
+    timestamp: datetime = Field(
+        default_factory=datetime.now, description="Status timestamp"
+    )
     message: Optional[str] = Field(default=None, description="Status message")
-    
+
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
 
@@ -518,6 +563,7 @@ __all__ = [
     # Analytics
     "ConversationAnalytics",
     "AgentPerformanceMetrics",
+    "SystemAnalytics",
     # API Models
     "ChatRequest",
     "ChatResponse",
