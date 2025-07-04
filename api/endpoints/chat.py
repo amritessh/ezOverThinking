@@ -44,12 +44,16 @@ async def send_message(
         conversation_state = await orchestrator.get_conversation_state(user_id)
         if conversation_state is None:
             # Start a new conversation
-            conversation_id = await orchestrator.start_conversation(user_id, user_concern)
+            conversation_id = await orchestrator.start_conversation(
+                user_id, user_concern
+            )
         else:
             conversation_id = conversation_state.conversation_id
 
         # Orchestrate response
-        agent_response = await orchestrator.orchestrate_response(conversation_id, request.message)
+        agent_response = await orchestrator.orchestrate_response(
+            conversation_id, request.message
+        )
 
         # Get current anxiety level
         current_anxiety = await anxiety_tracker.get_real_time_anxiety(conversation_id)
@@ -97,7 +101,9 @@ async def continue_conversation(
             conversation_state.conversation_id, "Please continue the conversation"
         )
 
-        current_anxiety = await anxiety_tracker.get_real_time_anxiety(conversation_state.conversation_id)
+        current_anxiety = await anxiety_tracker.get_real_time_anxiety(
+            conversation_state.conversation_id
+        )
 
         return ChatResponse(
             conversation_id=conversation_state.conversation_id,
@@ -161,17 +167,18 @@ async def get_anxiety_level(
     """Get current anxiety level"""
     try:
         user_id = "demo_user"
-        
+
         # Get current conversation state
         conversation_state = await orchestrator.get_conversation_state(user_id)
         if not conversation_state:
-            return {
-                "current_level": 1,
-                "history": []
-            }
-        
-        anxiety_level = await anxiety_tracker.get_real_time_anxiety(conversation_state.conversation_id)
-        anxiety_history = await anxiety_tracker.get_anxiety_history(conversation_state.conversation_id)
+            return {"current_level": 1, "history": []}
+
+        anxiety_level = await anxiety_tracker.get_real_time_anxiety(
+            conversation_state.conversation_id
+        )
+        anxiety_history = await anxiety_tracker.get_anxiety_history(
+            conversation_state.conversation_id
+        )
 
         return {
             "current_level": anxiety_level.value if anxiety_level else 1,
@@ -304,18 +311,26 @@ async def batch_process_concerns(
 
         for request in requests:
             user_concern = UserConcern(
-                user_id=user_id, original_worry=request.message, timestamp=datetime.now()
+                user_id=user_id,
+                original_worry=request.message,
+                timestamp=datetime.now(),
             )
 
             # Check for existing conversation
             conversation_state = await orchestrator.get_conversation_state(user_id)
             if conversation_state is None:
-                conversation_id = await orchestrator.start_conversation(user_id, user_concern)
+                conversation_id = await orchestrator.start_conversation(
+                    user_id, user_concern
+                )
             else:
                 conversation_id = conversation_state.conversation_id
 
-            agent_response = await orchestrator.orchestrate_response(conversation_id, request.message)
-            current_anxiety = await anxiety_tracker.get_real_time_anxiety(conversation_id)
+            agent_response = await orchestrator.orchestrate_response(
+                conversation_id, request.message
+            )
+            current_anxiety = await anxiety_tracker.get_real_time_anxiety(
+                conversation_id
+            )
 
             responses.append(
                 ChatResponse(

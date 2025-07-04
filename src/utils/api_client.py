@@ -1,13 +1,14 @@
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import requests
 import streamlit as st
 from typing import Dict, Any
 import logging
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
 
 class APIClient:
     """Client for communicating with the ezOverThinking API backend"""
@@ -20,7 +21,9 @@ class APIClient:
                 self.base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
             except:
                 try:
-                    self.base_url = st.secrets.get("API_BASE_URL", "http://localhost:8000")
+                    self.base_url = st.secrets.get(
+                        "API_BASE_URL", "http://localhost:8000"
+                    )
                 except (FileNotFoundError, KeyError):
                     self.base_url = "http://localhost:8000"
                     logger.warning("Using default API URL: http://localhost:8000")

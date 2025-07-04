@@ -411,40 +411,34 @@ class CatastropheEscalatorAgent(BaseAgent):
                 else self._categorize_concern(concern.original_worry)
             )
 
-            # Select catastrophe scenario
-            scenario = self._select_catastrophe_scenario(concern, category)
-
-            # Build the escalation narrative
-            narrative = self._build_escalation_narrative(
-                scenario, concern.original_worry
+            # Calculate escalation level
+            escalation_level = 4  # Medium-high escalation
+            
+            # Generate concise response using the new method
+            catastrophe_narrative = f"This could escalate quickly and have serious consequences."
+            next_agent = self._suggest_next_agent(category, escalation_level)
+            
+            response_content = await self._craft_response(
+                concern.original_worry,
+                escalation_level,
+                catastrophe_narrative,
+                next_agent
             )
 
-            # Add creative connections
-            narrative = self._add_creative_connections(narrative, category)
-
-            # Calculate escalation level
-            escalation_level = min(5, len(scenario["escalation_chain"]))
-
-            # Select next agent
-            next_agent = self._suggest_next_agent(category, escalation_level)
-
             # Add response to memory
-            self.add_to_memory(AIMessage(content=narrative))
+            self.add_to_memory(AIMessage(content=response_content))
 
             # Calculate metrics
             processing_time = (datetime.now() - start_time).total_seconds()
 
             # Create response
             response = self.format_response(
-                content=narrative,
+                content=response_content,
                 anxiety_escalation=escalation_level,
                 suggested_next_agents=[next_agent],
                 metadata={
-                    "catastrophe_scenario": scenario,
                     "escalation_level": escalation_level,
                     "worry_category": category.value,
-                    "dramatic_elements_used": True,
-                    "creative_connections_added": True,
                     "recommended_next_agent": next_agent,
                     "processing_time": processing_time,
                 },
@@ -465,9 +459,9 @@ class CatastropheEscalatorAgent(BaseAgent):
             self.logger.error(f"Error escalating concern: {e}")
             self.update_state(AgentState.ERROR)
 
-            # Return dramatic error response
+            # Return concise error response
             return self.format_response(
-                content="Oh dear, something so catastrophic has happened that even I, the master of disasters, am speechless. But don't worry - this is probably just the beginning of something much worse!",
+                content="Something catastrophic has happened! But don't worry - this is probably just the beginning of something much worse.",
                 anxiety_escalation=3,
                 suggested_next_agents=["timeline_panic_generator"],
                 metadata={"error": str(e)},
@@ -518,6 +512,23 @@ class CatastropheEscalatorAgent(BaseAgent):
 
     def __str__(self) -> str:
         return "CatastropheEscalatorAgent(Professor Catastrophe Von Doomsworth)"
+
+    async def _craft_response(
+        self,
+        concern: str,
+        escalation_level: int,
+        catastrophe_narrative: str,
+        next_agent: str,
+    ) -> str:
+        """Craft a concise catastrophic response"""
+        
+        # Keep responses very short and impactful
+        if escalation_level <= 3:
+            return f"Ah, {concern}. While that might seem minor, consider this: {catastrophe_narrative[:100]}... This could escalate quickly."
+        elif escalation_level <= 5:
+            return f"Hold on - {catastrophe_narrative[:80]}. And that's just the beginning. The real consequences are far worse than you imagine."
+        else:
+            return f"🚨 CRITICAL: {catastrophe_narrative[:60]}. This will destroy everything. You need to act NOW before it's too late."
 
 
 # Factory registration

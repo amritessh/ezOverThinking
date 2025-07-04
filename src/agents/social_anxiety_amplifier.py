@@ -527,6 +527,23 @@ class SocialAnxietyAmplifierAgent(BaseAgent):
     def __str__(self) -> str:
         return f"SocialAnxietyAmplifierAgent(Professor Socially Awkward Von Judgmental)"
 
+    async def _craft_response(
+        self,
+        concern: str,
+        social_judgment: str,
+        reputation_risk: str,
+        anxiety_escalation: int,
+    ) -> str:
+        """Craft a concise social anxiety response"""
+        
+        # Keep responses very short and focused
+        if anxiety_escalation <= 3:
+            return f"People will definitely notice {concern}. And once they notice, they'll judge. Social perception is everything."
+        elif anxiety_escalation <= 5:
+            return f"Your reputation is at stake with {concern}. People remember social mistakes forever. This could follow you everywhere."
+        else:
+            return f"Everyone will know about {concern}. Your social standing will be destroyed. People will talk about this for years."
+
 
 # Factory registration
 def create_social_anxiety_amplifier(**kwargs) -> SocialAnxietyAmplifierAgent:

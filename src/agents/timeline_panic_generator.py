@@ -632,6 +632,23 @@ class TimelinePanicGeneratorAgent(BaseAgent):
     def __str__(self) -> str:
         return "TimelinePanicGeneratorAgent(Dr. Ticktock McUrgency)"
 
+    async def _craft_response(
+        self,
+        concern: str,
+        timeline_pressure: str,
+        urgency_narrative: str,
+        anxiety_escalation: int,
+    ) -> str:
+        """Craft a concise timeline panic response"""
+        
+        # Keep responses very short and focused
+        if anxiety_escalation <= 3:
+            return f"Time is running out for {concern}. Every second you wait makes it worse. You need to act immediately."
+        elif anxiety_escalation <= 5:
+            return f"The window to fix {concern} is closing fast. Delaying now could mean permanent consequences. Time is your enemy."
+        else:
+            return f"🚨 URGENT: {concern} requires immediate action. You're already behind schedule. Any further delay will be catastrophic."
+
 
 # Factory registration
 def create_timeline_panic_generator(**kwargs) -> TimelinePanicGeneratorAgent:

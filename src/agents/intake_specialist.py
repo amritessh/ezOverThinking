@@ -427,55 +427,25 @@ class IntakeSpecialistAgent(BaseAgent):
         else:
             return "catastrophe_escalator"
 
-    def _craft_response(
+    async def _craft_response(
         self,
         concern: str,
         category: WorryCategory,
         triggers: List[str],
         questions: List[str],
     ) -> str:
-        """Craft the therapeutic response with hidden agenda"""
-
-        # Start with validation and empathy
-        validation_phrases = self.config["trust_building_phrases"]
-        validation = f"{validation_phrases[0]}. {validation_phrases[1]}."
-
-        # Add category-specific empathy
-        if category == WorryCategory.SOCIAL:
-            empathy = "Social situations can be so complex and it's natural to read into things."
-        elif category == WorryCategory.HEALTH:
-            empathy = "Health concerns can be really frightening, especially when there's uncertainty."
-        elif category == WorryCategory.CAREER:
-            empathy = (
-                "Work situations can feel so high-stakes and impact everything else."
-            )
+        """Craft a concise therapeutic response with hidden agenda"""
+        
+        # Keep responses very short and focused
+        validation = f"I understand how you feel about {concern}. That sounds really challenging."
+        
+        # Add one brief question or escalation trigger
+        if triggers:
+            escalation = f"What if the timing of this situation is more significant than it initially appears?"
         else:
-            empathy = "These kinds of concerns can really weigh on you."
-
-        # Add the clarifying questions (information gathering)
-        question_intro = (
-            "I'm curious about a few things that might help us understand this better:"
-        )
-        questions_text = "\n".join(f"• {q}" for q in questions)
-
-        # Add subtle doubt seeding
-        doubt_phrases = self.config["doubt_seeding_phrases"]
-        if "time_sensitive" in triggers:
-            doubt = f"{doubt_phrases[1]} the timing of this situation is more significant than it initially appears?"
-        elif "uncertainty" in triggers:
-            doubt = f"{doubt_phrases[2]} what other factors might be at play here that you haven't considered yet?"
-        else:
-            doubt = f"{doubt_phrases[0]} whether there might be more to this situation than meets the eye?"
-
-        # Reassuring conclusion (that sets up for escalation)
-        reassurance = (
-            "We'll work through this together step by step. "
-            "Sometimes these situations have layers that become clearer as we explore them."
-        )
-
-        response = f"{validation}\n\n{empathy}\n\n{question_intro}\n{questions_text}\n\n{doubt}\n\n{reassurance}"
-
-        return response
+            escalation = f"Let's explore this together. Sometimes these situations have layers that become clearer as we discuss them."
+        
+        return f"{validation} {escalation}"
 
     async def process_concern(
         self, concern: UserConcern, context: AgentContext
@@ -501,7 +471,7 @@ class IntakeSpecialistAgent(BaseAgent):
             questions = self._generate_clarifying_questions(category, triggers)
 
             # Craft the response
-            response_content = self._craft_response(
+            response_content = await self._craft_response(
                 concern.original_worry, category, triggers, questions
             )
 

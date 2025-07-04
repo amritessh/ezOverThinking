@@ -1,4 +1,3 @@
-
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timedelta
 import asyncio
@@ -38,9 +37,6 @@ class ConversationPhase(Enum):
     INTAKE = "intake"
     ESCALATION = "escalation"
     AMPLIFICATION = "amplification"
-    PEAK_ANXIETY = "peak_anxiety"
-    FALSE_COMFORT = "false_comfort"
-    FINAL_ESCALATION = "final_escalation"
     COMPLETION = "completion"
 
 
@@ -146,9 +142,7 @@ class AgentCoordinator(BaseAgent):
                 "agent_sequence": [
                     "intake_specialist",
                     "catastrophe_escalator", 
-                    "timeline_panic_generator",
-                    "probability_twister",
-                    "false_comfort_provider"
+                    "probability_twister"
                 ],
                 "escalation_pattern": "steady_increase",
                 "handoff_triggers": ["response_complete", "escalation_threshold"]
@@ -159,9 +153,7 @@ class AgentCoordinator(BaseAgent):
                     "intake_specialist",
                     "catastrophe_escalator",
                     "social_anxiety_amplifier",
-                    "catastrophe_escalator",
-                    "timeline_panic_generator",
-                    "false_comfort_provider"
+                    "catastrophe_escalator"
                 ],
                 "escalation_pattern": "spiral_intensification",
                 "handoff_triggers": ["peak_anxiety_reached", "user_engagement_high"]
@@ -172,9 +164,7 @@ class AgentCoordinator(BaseAgent):
                     "intake_specialist",
                     "catastrophe_escalator",
                     "probability_twister",
-                    "social_anxiety_amplifier",
-                    "timeline_panic_generator",
-                    "false_comfort_provider"
+                    "social_anxiety_amplifier"
                 ],
                 "escalation_pattern": "alternating_peaks",
                 "handoff_triggers": ["anxiety_type_saturation", "user_adaptation"]
@@ -198,44 +188,26 @@ class AgentCoordinator(BaseAgent):
         return {
             ConversationPhase.INTAKE: {
                 "primary_agent": "intake_specialist",
-                "duration_range": (1, 2),
-                "success_criteria": ["concern_categorized", "trust_established"],
-                "next_phases": [ConversationPhase.ESCALATION]
+                "duration_range": (1, 1),  # Only 1 message in intake
+                "success_criteria": ["concern_categorized"],
+                "next_phases": [ConversationPhase.ESCALATION, ConversationPhase.AMPLIFICATION]
             },
             ConversationPhase.ESCALATION: {
                 "primary_agent": "catastrophe_escalator",
-                "duration_range": (2, 3),
-                "success_criteria": ["anxiety_escalated", "narrative_established"],
-                "next_phases": [ConversationPhase.AMPLIFICATION, ConversationPhase.PEAK_ANXIETY]
+                "duration_range": (1, 1),  # Only 1 message in escalation
+                "success_criteria": ["anxiety_escalated"],
+                "next_phases": [ConversationPhase.AMPLIFICATION, ConversationPhase.ESCALATION]
             },
             ConversationPhase.AMPLIFICATION: {
-                "primary_agent": "dynamic_selection",
-                "duration_range": (2, 4),
-                "success_criteria": ["anxiety_amplified", "multiple_concerns_introduced"],
-                "next_phases": [ConversationPhase.PEAK_ANXIETY, ConversationPhase.FALSE_COMFORT]
-            },
-            ConversationPhase.PEAK_ANXIETY: {
-                "primary_agent": "probability_twister",
-                "duration_range": (1, 2),
-                "success_criteria": ["maximum_anxiety_reached", "statistical_authority_established"],
-                "next_phases": [ConversationPhase.FALSE_COMFORT, ConversationPhase.FINAL_ESCALATION]
-            },
-            ConversationPhase.FALSE_COMFORT: {
-                "primary_agent": "false_comfort_provider",
-                "duration_range": (2, 3),
-                "success_criteria": ["false_hope_created_and_destroyed", "caring_devastation_delivered"],
-                "next_phases": [ConversationPhase.FINAL_ESCALATION, ConversationPhase.COMPLETION]
-            },
-            ConversationPhase.FINAL_ESCALATION: {
-                "primary_agent": "dynamic_selection",
-                "duration_range": (1, 2),
-                "success_criteria": ["maximum_impact_achieved", "conversation_peak_reached"],
-                "next_phases": [ConversationPhase.COMPLETION]
+                "primary_agent": "dynamic_selection",  # Allow dynamic selection
+                "duration_range": (1, 1),  # Only 1 message in amplification
+                "success_criteria": ["anxiety_amplified"],
+                "next_phases": [ConversationPhase.ESCALATION, ConversationPhase.AMPLIFICATION, ConversationPhase.COMPLETION]
             },
             ConversationPhase.COMPLETION: {
                 "primary_agent": "coordinator",
                 "duration_range": (1, 1),
-                "success_criteria": ["conversation_concluded", "metrics_recorded"],
+                "success_criteria": ["conversation_concluded"],
                 "next_phases": []
             }
         }
@@ -437,26 +409,39 @@ class AgentCoordinator(BaseAgent):
         # Analyze user message for optimal agent
         message_lower = user_message.lower()
         anxiety_level = conversation_state.current_anxiety_level.value
+        message_count = conversation_state.message_count
+        
+        # Death/existential concerns
+        if any(word in message_lower for word in ["dead", "death", "die", "dying", "end", "over", "gone"]):
+            return "catastrophe_escalator"
+        
+        # Time pressure concerns
+        elif any(word in message_lower for word in ["time", "running out", "deadline", "urgent", "soon", "quickly"]):
+            return "timeline_panic_generator"
         
         # Social concerns
-        if any(word in message_lower for word in ["friend", "social", "text", "embarrassed"]):
+        elif any(word in message_lower for word in ["friend", "social", "text", "embarrassed", "judge", "think"]):
             return "social_anxiety_amplifier"
         
         # Health concerns
-        elif any(word in message_lower for word in ["health", "sick", "pain", "symptom"]):
+        elif any(word in message_lower for word in ["health", "sick", "pain", "symptom", "doctor", "medical"]):
             return "catastrophe_escalator"
         
-        # Time-sensitive concerns
-        elif any(word in message_lower for word in ["deadline", "urgent", "time", "running out"]):
-            return "timeline_panic_generator"
-        
         # Statistical/probability concerns
-        elif any(word in message_lower for word in ["chance", "probability", "likely", "statistics"]):
+        elif any(word in message_lower for word in ["chance", "probability", "likely", "statistics", "percent", "%"]):
             return "probability_twister"
         
         # High anxiety - provide false comfort
         elif anxiety_level >= 4:
             return "false_comfort_provider"
+        
+        # After first message, alternate between escalation and amplification
+        elif message_count > 1:
+            # Alternate between catastrophe escalator and probability twister
+            if message_count % 2 == 0:
+                return "catastrophe_escalator"
+            else:
+                return "probability_twister"
         
         # Default escalation
         else:
@@ -538,16 +523,20 @@ class AgentCoordinator(BaseAgent):
         
         for criterion in success_criteria:
             if criterion == "concern_categorized":
-                if not response.metadata.get("worry_category"):
+                # Always consider concern categorized if we have a response
+                if not response.response:
                     return False
             elif criterion == "anxiety_escalated":
-                if response.anxiety_escalation < 3:
+                # Consider escalated if anxiety increased or is high
+                if response.anxiety_escalation < 2 and conversation_state.current_anxiety_level.value < 3:
                     return False
-            elif criterion == "maximum_anxiety_reached":
-                if conversation_state.current_anxiety_level.value < 4:
+            elif criterion == "anxiety_amplified":
+                # Consider amplified if anxiety is moderate or higher
+                if conversation_state.current_anxiety_level.value < 2:
                     return False
-            elif criterion == "false_hope_created_and_destroyed":
-                if not response.metadata.get("hope_built_and_destroyed"):
+            elif criterion == "conversation_concluded":
+                # Consider concluded if we've had multiple exchanges
+                if conversation_state.message_count < 3:
                     return False
         
         return True
@@ -558,22 +547,16 @@ class AgentCoordinator(BaseAgent):
         next_phases: List[ConversationPhase]
     ) -> ConversationPhase:
         """Select next phase based on conversation state"""
-        
         if len(next_phases) == 1:
             return next_phases[0]
-        
-        # Selection logic based on conversation state
         anxiety_level = conversation_state.current_anxiety_level.value
         message_count = conversation_state.message_count
-        
-        # If anxiety is high, provide false comfort
-        if anxiety_level >= 4 and ConversationPhase.FALSE_COMFORT in next_phases:
-            return ConversationPhase.FALSE_COMFORT
-        
+        # If anxiety is high, move to amplification
+        if anxiety_level >= 4 and ConversationPhase.AMPLIFICATION in next_phases:
+            return ConversationPhase.AMPLIFICATION
         # If conversation is long, move toward completion
         if message_count > 15 and ConversationPhase.COMPLETION in next_phases:
             return ConversationPhase.COMPLETION
-        
         # Default to first option
         return next_phases[0]
     

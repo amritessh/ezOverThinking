@@ -540,6 +540,23 @@ class ProbabilityTwisterAgent(BaseAgent):
         
         return f"Studies show that {percentage}% of people experiencing {topic} are {multiplier}x more likely to encounter additional complications."
     
+    async def _craft_response(
+        self,
+        concern: str,
+        probability_manipulation: str,
+        statistical_doubt: str,
+        anxiety_escalation: int,
+    ) -> str:
+        """Craft a concise probability-twisting response"""
+        
+        # Keep responses very short and focused
+        if anxiety_escalation <= 3:
+            return f"Statistically, {concern} is unlikely. But statistics don't account for your specific situation. What if you're the outlier?"
+        elif anxiety_escalation <= 5:
+            return f"The probability of {concern} going wrong is low. However, probability doesn't protect you from being the unlucky one."
+        else:
+            return f"Numbers say {concern} should be fine. But numbers lie. You could easily be the statistical exception that proves the rule."
+    
     def __str__(self) -> str:
         return f"ProbabilityTwisterAgent(Dr. Probability McStatistics)"
 

@@ -410,50 +410,36 @@ class FalseComfortProviderAgent(BaseAgent):
             # Determine category
             category = concern.category if concern.category != WorryCategory.GENERAL else self._categorize_concern(concern.original_worry)
             
-            # Generate comfort undermining sequence
-            comfort_sequence = self._generate_comfort_undermining_sequence(concern.original_worry, category)
+            # Generate concise response using the new method
+            comfort_level = 4  # Medium comfort level
+            false_hope_narrative = "Everything will probably be okay"
+            anxiety_escalation = 5  # High anxiety escalation
             
-            # Generate false hope destruction
-            hope_destruction = self._generate_false_hope_destruction()
-            
-            # Create what-if scenarios
-            what_if_scenarios = self._create_what_if_scenarios(concern.original_worry, category)
-            
-            # Generate caring devastation conclusion
-            caring_conclusion = self._generate_caring_devastation_conclusion()
-            
-            # Combine all elements
-            full_response = f"{comfort_sequence}\n\n{hope_destruction}\n\n{what_if_scenarios}\n\n{caring_conclusion}"
-            
-            # Truncate to stay within 2000 character limit
-            if len(full_response) > 1900:  # Leave some buffer
-                full_response = full_response[:1900] + "...\n\n[Response truncated due to length]"
-            
-            # Calculate anxiety level (very high due to false hope destruction)
-            anxiety_level = 5  # Maximum anxiety through false comfort
+            response_content = await self._craft_response(
+                concern.original_worry, 
+                comfort_level, 
+                false_hope_narrative, 
+                anxiety_escalation
+            )
             
             # Suggest next agent
-            next_agent = self._suggest_next_agent(anxiety_level, category)
+            next_agent = self._suggest_next_agent(anxiety_escalation, category)
             
             # Add response to memory
-            self.add_to_memory(AIMessage(content=full_response))
+            self.add_to_memory(AIMessage(content=response_content))
             
             # Calculate metrics
             processing_time = (datetime.now() - start_time).total_seconds()
             
             # Create response
             response = self.format_response(
-                content=full_response,
-                anxiety_escalation=anxiety_level,
+                content=response_content,
+                anxiety_escalation=anxiety_escalation,
                 suggested_next_agents=[next_agent],
                 metadata={
                     "false_comfort_provided": True,
-                    "hope_built_and_destroyed": True,
-                    "exceptions_created": True,
-                    "caring_language_used": True,
-                    "what_if_scenarios_generated": True,
                     "worry_category": category.value,
-                    "anxiety_level": anxiety_level,
+                    "anxiety_level": anxiety_escalation,
                     "recommended_next_agent": next_agent,
                     "processing_time": processing_time
                 }
@@ -462,7 +448,7 @@ class FalseComfortProviderAgent(BaseAgent):
             self.update_state(AgentState.IDLE)
             
             # Update metrics
-            self.update_metrics(processing_time, anxiety_level >= 4)
+            self.update_metrics(processing_time, anxiety_escalation >= 4)
             
             self.logger.info(f"Provided false comfort for {category.value} concern with maximum anxiety escalation")
             
@@ -472,9 +458,9 @@ class FalseComfortProviderAgent(BaseAgent):
             self.logger.error(f"Error providing false comfort: {e}")
             self.update_state(AgentState.ERROR)
             
-            # Return caring error response
+            # Return concise error response
             return self.format_response(
-                content="💙 Oh sweetie, I'm so sorry this technical error happened. I want to comfort you about it, but I have to be honest - what if this error is a sign that technology is failing you at the worst possible time? I care about you too much to give you false hope about your digital reliability. This malfunction might actually be preparing you for bigger technological disappointments ahead.",
+                content="I'm sorry about this technical error. But what if this malfunction is a sign of bigger problems ahead? Technology can fail when you need it most.",
                 anxiety_escalation=4,
                 suggested_next_agents=["catastrophe_escalator"],
                 metadata={"error": str(e), "caring_error_response": True}
@@ -532,6 +518,23 @@ def create_false_comfort_provider(**kwargs) -> FalseComfortProviderAgent:
     """Factory function to create FalseComfortProviderAgent"""
     return FalseComfortProviderAgent(**kwargs)
 
+
+    async def _craft_response(
+        self,
+        concern: str,
+        comfort_level: int,
+        false_hope_narrative: str,
+        anxiety_escalation: int,
+    ) -> str:
+        """Craft a concise false comfort response"""
+        
+        # Keep responses very short and manipulative
+        if comfort_level <= 3:
+            return f"Don't worry about {concern} - most people handle this fine. But what if you're the exception? That's worth considering."
+        elif comfort_level <= 5:
+            return f"Everything will probably be okay with {concern}. Probably. Though there are cases where it all goes wrong. You should be prepared."
+        else:
+            return f"Stay positive about {concern}! But false hope can be dangerous. The truth might be harder than you want to admit."
 
 # Export
 __all__ = ["FalseComfortProviderAgent", "create_false_comfort_provider"]

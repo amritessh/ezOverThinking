@@ -8,6 +8,7 @@ import asyncio
 import logging
 from typing import Dict
 import uvicorn
+from fastapi.responses import JSONResponse
 
 # Internal imports
 from .endpoints import chat, analytics, health, auth
@@ -60,7 +61,9 @@ async def lifespan(app: FastAPI):
                 await services["anxiety_tracker"].initialize()
                 logger.info("✅ AnxietyTracker initialized")
             else:
-                logger.warning("⚠️ Skipping AnxietyTracker initialization (StateManager not available)")
+                logger.warning(
+                    "⚠️ Skipping AnxietyTracker initialization (StateManager not available)"
+                )
                 services["anxiety_tracker"] = None
         except Exception as e:
             logger.error(f"❌ Failed to initialize AnxietyTracker: {e}")
@@ -74,7 +77,9 @@ async def lifespan(app: FastAPI):
                 await services["analytics_service"].initialize()
                 logger.info("✅ AnalyticsService initialized")
             else:
-                logger.warning("⚠️ Skipping AnalyticsService initialization (StateManager not available)")
+                logger.warning(
+                    "⚠️ Skipping AnalyticsService initialization (StateManager not available)"
+                )
                 services["analytics_service"] = None
         except Exception as e:
             logger.error(f"❌ Failed to initialize AnalyticsService: {e}")
@@ -84,12 +89,41 @@ async def lifespan(app: FastAPI):
             if all([services.get("state_manager"), services.get("anxiety_tracker")]):
                 services["conversation_orchestrator"] = ConversationOrchestrator(
                     state_manager=services["state_manager"],
-                    anxiety_tracker=services["anxiety_tracker"]
+                    anxiety_tracker=services["anxiety_tracker"],
                 )
                 await services["conversation_orchestrator"].initialize()
-                logger.info("✅ ConversationOrchestrator initialized")
+                
+                # Register agents with the orchestrator
+                from src.agents.intake_specialist import IntakeSpecialistAgent
+                from src.agents.catastrophe_escalator import CatastropheEscalatorAgent
+                from src.agents.probability_twister import ProbabilityTwisterAgent
+                from src.agents.social_anxiety_amplifier import SocialAnxietyAmplifierAgent
+                from src.agents.timeline_panic_generator import TimelinePanicGeneratorAgent
+                from src.agents.false_comfort_provider import FalseComfortProviderAgent
+                from src.agents.coordinator import AgentCoordinator
+                
+                # Register all agents
+                intake_agent = IntakeSpecialistAgent()
+                catastrophe_agent = CatastropheEscalatorAgent()
+                probability_agent = ProbabilityTwisterAgent()
+                social_agent = SocialAnxietyAmplifierAgent()
+                timeline_agent = TimelinePanicGeneratorAgent()
+                comfort_agent = FalseComfortProviderAgent()
+                coordinator = AgentCoordinator()
+                
+                services["conversation_orchestrator"].register_agent(intake_agent)
+                services["conversation_orchestrator"].register_agent(catastrophe_agent)
+                services["conversation_orchestrator"].register_agent(probability_agent)
+                services["conversation_orchestrator"].register_agent(social_agent)
+                services["conversation_orchestrator"].register_agent(timeline_agent)
+                services["conversation_orchestrator"].register_agent(comfort_agent)
+                services["conversation_orchestrator"].register_coordinator(coordinator)
+                
+                logger.info("✅ ConversationOrchestrator initialized with all agents")
             else:
-                logger.warning("⚠️ Skipping ConversationOrchestrator initialization (dependencies not available)")
+                logger.warning(
+                    "⚠️ Skipping ConversationOrchestrator initialization (dependencies not available)"
+                )
                 services["conversation_orchestrator"] = None
         except Exception as e:
             logger.error(f"❌ Failed to initialize ConversationOrchestrator: {e}")
@@ -165,9 +199,7 @@ app.include_router(health.router, prefix="/health", tags=["health"])
 
 app.include_router(auth.router, prefix="/auth", tags=["authentication"])
 
-app.include_router(
-    chat.router, prefix="/chat", tags=["chat"]
-)
+app.include_router(chat.router, prefix="/chat", tags=["chat"])
 
 app.include_router(
     analytics.router,
@@ -189,6 +221,7 @@ async def root():
         "health": "/health",
     }
 
+
 @app.get("/status")
 async def status():
     """Check service status"""
@@ -196,8 +229,10 @@ async def status():
         "state_manager": services.get("state_manager") is not None,
         "anxiety_tracker": services.get("anxiety_tracker") is not None,
         "analytics_service": services.get("analytics_service") is not None,
-        "conversation_orchestrator": services.get("conversation_orchestrator") is not None,
+        "conversation_orchestrator": services.get("conversation_orchestrator")
+        is not None,
     }
+
 
 @app.post("/test-chat")
 async def test_chat():
@@ -206,16 +241,18 @@ async def test_chat():
         orchestrator = services.get("conversation_orchestrator")
         if orchestrator is None:
             return {"error": "ConversationOrchestrator not available"}
-        
+
         # Test basic functionality
         return {"message": "Test successful", "orchestrator_available": True}
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.post("/echo")
 async def echo_request(request: dict):
     """Echo the request to test JSON parsing"""
     return {"received": request}
+
 
 @app.post("/test-orchestrator")
 async def test_orchestrator():
@@ -224,16 +261,40 @@ async def test_orchestrator():
         orchestrator = services.get("conversation_orchestrator")
         if orchestrator is None:
             return {"error": "ConversationOrchestrator not available"}
-        
+
         # Test orchestrator methods
         user_id = "demo_user"
         state = await orchestrator.get_conversation_state(user_id)
-        
+
         return {
             "orchestrator_available": True,
             "conversation_state": state is not None,
-            "state_details": str(state) if state else None
+            "state_details": str(state) if state else None,
         }
+    except Exception as e:
+        return {"error": str(e), "traceback": str(e.__traceback__)}
+
+@app.post("/test-orchestrate")
+async def test_orchestrate():
+    """Test orchestrate_response method"""
+    try:
+        orchestrator = services.get("conversation_orchestrator")
+        if orchestrator is None:
+            return {"error": "ConversationOrchestrator not available"}
+        
+        # Test orchestrate_response
+        user_id = "demo_user"
+        state = await orchestrator.get_conversation_state(user_id)
+        
+        if state:
+            response = await orchestrator.orchestrate_response(state.conversation_id, "test message")
+            return {
+                "success": True,
+                "response": response.response,
+                "agent_name": response.agent_name
+            }
+        else:
+            return {"error": "No conversation state found"}
     except Exception as e:
         return {"error": str(e), "traceback": str(e.__traceback__)}
 
@@ -269,21 +330,19 @@ async def cleanup_background_task():
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
     logger.error(f"HTTP Exception: {exc.status_code} - {exc.detail}")
-    return {
-        "error": {"code": exc.status_code, "message": exc.detail, "type": "http_error"}
-    }
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": exc.status_code, "message": exc.detail, "type": "http_error"}}
+    )
 
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):
     logger.error(f"Unexpected error: {str(exc)}")
-    return {
-        "error": {
-            "code": 500,
-            "message": "Internal server error",
-            "type": "server_error",
-        }
-    }
+    return JSONResponse(
+        status_code=500,
+        content={"error": {"code": 500, "message": "Internal server error", "type": "server_error"}}
+    )
 
 
 # Development server

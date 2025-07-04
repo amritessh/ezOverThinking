@@ -27,7 +27,9 @@ async def get_state_manager() -> StateManager:
 async def get_conversation_orchestrator() -> ConversationOrchestrator:
     service = services.get("conversation_orchestrator")
     if service is None:
-        raise HTTPException(status_code=503, detail="ConversationOrchestrator not available")
+        raise HTTPException(
+            status_code=503, detail="ConversationOrchestrator not available"
+        )
     return service
 
 
